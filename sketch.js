@@ -1,156 +1,154 @@
-let scene, camera, renderer, raycaster, mouse;
-let planets = [];
-let stars = [];
-let selectedPlanet = null;
-let isZooming = false;
-let gameState = 'exploring';
-let score = 0;
+let scene, camera, renderer, raycaster, mouse, controls;
+let planets = [], stars = [], meteors = [], sunMesh = null;
+let currentMode = 'game', isInitialized = false, isOrbiting = true;
+let selectedPlanet = null, isZooming = false, gameState = 'exploring';
+let score = 0, lives = 3, currentWave = 1, planetsAnsweredInWave = 0;
 
-window.gameDifficulty = 'sedang'; 
+const textureLoader = new THREE.TextureLoader();
+const meteorTexture = textureLoader.load('ceres.jpg');
 
-const diffSettings = {
-    mudah: { count: 3, speed: 0.003, scoreMult: 5 },
-    sedang: { count: 5, speed: 0.008, scoreMult: 10 },
-    sulit: { count: 8, speed: 0.018, scoreMult: 20 }
-};
+const atmosphereVertex = `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const atmosphereFragment = `varying vec3 vNormal; uniform vec3 glowColor; void main() { float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.5); gl_FragColor = vec4(glowColor, 1.0) * intensity; }`;
 
-const planetData = [
-    { name: 'Merkurius', color: 0xB48C64, size: 1.0, facts: ['Terdekat dengan Matahari', 'Suhu sangat panas'], questions: [{ q: 'Planet terdekat Matahari?', options: ['Mars', 'Merkurius', 'Venus'], correct: 1 }] },
-    { name: 'Venus', color: 0xFFC864, size: 1.2, facts: ['Planet terpanas', 'Berotasi terbalik'], questions: [{ q: 'Planet terpanas adalah?', options: ['Bumi', 'Venus', 'Merkurius'], correct: 1 }] },
-    { name: 'Bumi', color: 0x6496FF, size: 1.3, facts: ['Memiliki kehidupan', 'Satu-satunya yang berair'], questions: [{ q: 'Berapa persen air di Bumi?', options: ['50%', '71%', '90%'], correct: 1 }] },
-    { name: 'Mars', color: 0xFF6450, size: 1.1, facts: ['Planet Merah', 'Kaya oksida besi'], questions: [{ q: 'Kenapa Mars merah?', options: ['Oksida Besi', 'Lava', 'Gas'], correct: 0 }] },
-    { name: 'Jupiter', color: 0xD3A17E, size: 2.0, facts: ['Planet terbesar', 'Planet gas'], questions: [{ q: 'Planet terbesar?', options: ['Saturnus', 'Jupiter', 'Bumi'], correct: 1 }] }
-];
-
-function initGame() {
+function initProject(mode) {
+    if (isInitialized) return;
+    isInitialized = true; currentMode = mode;
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x02050f);
-
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 18;
-
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
+    camera.position.set(0, 150, mode === 'gallery' ? 250 : 100);
     
-    const container = document.getElementById('canvas-container');
-    container.innerHTML = '';
-    container.appendChild(renderer.domElement);
-
-    raycaster = new THREE.Raycaster();
-    mouse = new THREE.Vector2();
-
-    const light = new THREE.PointLight(0xffffff, 1.5, 100);
-    light.position.set(10, 10, 10);
-    scene.add(light, new THREE.AmbientLight(0xffffff, 0.4));
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+    
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
 
     createStars();
-    spawnPlanets(); 
 
-    window.addEventListener('resize', onResize);
-    window.addEventListener('click', onClick);
+    // MATAHARI HANYA DI GALERI
+    if (mode === 'gallery') { 
+        spawnSun();
+        buildGallerySystem(); 
+        setupOrbitToggle(); 
+    } else { 
+        updateHighscoreHUD(); 
+        startNewWave(); 
+    }
+    window.addEventListener('click', onSceneClick);
     animate();
 }
 
-function spawnPlanets() {
-    planets.forEach(p => scene.remove(p.mesh));
+function spawnSun() {
+    const data = planetData[0];
+    const mat = new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), emissive: 0xffaa00, emissiveIntensity: 0.5 });
+    sunMesh = new THREE.Mesh(new THREE.SphereGeometry(data.size, 64, 64), mat);
+    const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(data.size * 1.25, 64, 64), new THREE.ShaderMaterial({ vertexShader: atmosphereVertex, fragmentShader: atmosphereFragment, uniforms: { glowColor: { value: new THREE.Color(data.glow) } }, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending }));
+    sunMesh.add(sunGlow);
+    scene.add(new THREE.PointLight(0xffffff, 2, 1000), sunMesh);
+}
+
+function buildGallerySystem() {
     planets = [];
-    const setting = diffSettings[window.gameDifficulty];
-    
-    for (let i = 0; i < setting.count; i++) {
-        const data = planetData[i % planetData.length];
-        const angle = (i / setting.count) * Math.PI * 2;
-        const radius = 9;
-        const mesh = new THREE.Mesh(
-            new THREE.SphereGeometry(data.size, 32, 32),
-            new THREE.MeshPhongMaterial({ color: data.color, shininess: 20 })
-        );
-        mesh.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0);
+    planetData.forEach((data, index) => {
+        if (index === 0) return; // Skip Matahari
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.size, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), shininess: 25 }));
+        const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(data.size * 1.15, 64, 64), new THREE.ShaderMaterial({ vertexShader: atmosphereVertex, fragmentShader: atmosphereFragment, uniforms: { glowColor: { value: new THREE.Color(data.glow) } }, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending }));
+        mesh.add(atmosphere);
+        const angle = Math.random() * Math.PI * 2;
+        mesh.position.set(Math.cos(angle) * data.orbit, 0, Math.sin(angle) * data.orbit);
+        const orbit = new THREE.Mesh(new THREE.RingGeometry(data.orbit - 0.2, data.orbit + 0.2, 128), new THREE.MeshBasicMaterial({ color: 0x00d4ff, side: THREE.DoubleSide, transparent: true, opacity: 0.3 }));
+        orbit.rotation.x = Math.PI / 2; scene.add(orbit);
         scene.add(mesh);
-        planets.push({ mesh, data, rotSpeed: setting.speed + Math.random() * 0.005 });
+        planets.push({ mesh, data, rotSpeed: 0.01, orbitAngle: angle });
+    });
+}
+
+function startNewWave() { planetsAnsweredInWave = 0; document.getElementById('wave-display').textContent = currentWave; spawnGamePlanets(Math.min(3 + currentWave, 8), 0.005 + (currentWave * 0.004)); }
+
+function spawnGamePlanets(count, speed) {
+    planets.forEach(p => scene.remove(p.mesh)); planets = [];
+    for (let i = 0; i < count; i++) {
+        const data = planetData[(i % 8) + 1], angle = (i / count) * Math.PI * 2, orbitRadius = 50 + (i * 8);
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.size, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), shininess: 25 }));
+        const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(data.size * 1.15, 64, 64), new THREE.ShaderMaterial({ vertexShader: atmosphereVertex, fragmentShader: atmosphereFragment, uniforms: { glowColor: { value: new THREE.Color(data.glow) } }, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending }));
+        mesh.add(atmosphere);
+        mesh.position.set(Math.cos(angle) * orbitRadius, Math.sin(angle) * orbitRadius, 0);
+        scene.add(mesh);
+        planets.push({ mesh, data, rotSpeed: 0.02, orbitAngle: angle, orbitRadius, revSpeed: speed });
     }
+}
+
+function updateMeteors() {
+    if (Math.random() < 0.02) {
+        const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5 + Math.random(), 0), new THREE.MeshPhongMaterial({ map: meteorTexture, color: 0x888888, flatShading: true }));
+        const dist = 200, side = Math.random() > 0.5 ? 1 : -1;
+        m.position.set(side * dist, (Math.random()-0.5)*100, (Math.random()-0.5)*100);
+        m.userData = { v: new THREE.Vector3(-side * (0.8 + Math.random()), (Math.random()-0.5)*0.2, (Math.random()-0.5)*0.2) };
+        scene.add(m); meteors.push(m);
+    }
+    for(let i=meteors.length-1; i>=0; i--) { meteors[i].position.add(meteors[i].userData.v); if(meteors[i].position.length() > 400) { scene.remove(meteors[i]); meteors.splice(i, 1); } }
 }
 
 function animate() {
     requestAnimationFrame(animate);
-    planets.forEach(p => p.mesh.rotation.y += p.rotSpeed);
-    stars.rotation.y += 0.0002;
-
-    if (isZooming && selectedPlanet) {
-        const target = new THREE.Vector3(selectedPlanet.mesh.position.x, selectedPlanet.mesh.position.y, 4);
-        camera.position.lerp(target, 0.05);
-        camera.lookAt(selectedPlanet.mesh.position);
-    } else {
-        camera.position.lerp(new THREE.Vector3(0, 0, 18), 0.05);
-        camera.lookAt(0, 0, 0);
+    if (sunMesh) sunMesh.rotation.y += 0.002;
+    if (!isZooming) {
+        planets.forEach(p => {
+            if (!p.answered) {
+                p.mesh.rotation.y += p.rotSpeed;
+                if (isOrbiting) {
+                    p.orbitAngle += (currentMode === 'gallery' ? p.data.orbitSpeed : p.revSpeed);
+                    const r = (currentMode === 'gallery' ? p.data.orbit : p.orbitRadius);
+                    p.mesh.position.x = Math.cos(p.orbitAngle) * r;
+                    p.mesh.position[currentMode === 'gallery' ? 'z' : 'y'] = Math.sin(p.orbitAngle) * r;
+                }
+            }
+        });
     }
+    updateMeteors();
+    if (isZooming && selectedPlanet) {
+        controls.enabled = false;
+        const target = selectedPlanet.mesh.position.clone().add(new THREE.Vector3(0, 0, 15));
+        camera.position.lerp(target, 0.1); camera.lookAt(selectedPlanet.mesh.position);
+    } else { controls.enabled = true; controls.update(); }
     renderer.render(scene, camera);
 }
 
-function onClick(event) {
-    if (gameState !== 'exploring') return;
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    const hits = raycaster.intersectObjects(planets.map(p => p.mesh));
+function onSceneClick(e) {
+    mouse = new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
+    raycaster = new THREE.Raycaster(); raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(planets.map(p => p.mesh), true);
     if (hits.length > 0) {
-        selectedPlanet = planets.find(p => p.mesh === hits[0].object);
-        isZooming = true;
-        gameState = 'questioning';
-        showUI();
+        let obj = hits[0].object; while(obj.parent && !planets.find(p => p.mesh === obj)) obj = obj.parent;
+        selectedPlanet = planets.find(p => p.mesh === obj);
+        if (selectedPlanet) { isZooming = true; showUI(currentMode === 'game' ? 'game' : 'gallery'); }
     }
 }
 
-function showUI() {
+function showUI(type) {
     document.getElementById('planet-name-display').textContent = selectedPlanet.data.name.toUpperCase();
-    document.getElementById('question-text').textContent = selectedPlanet.data.questions[0].q;
-    const optCont = document.getElementById('options-container');
-    optCont.innerHTML = '';
-    selectedPlanet.data.questions[0].options.forEach((opt, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.textContent = opt;
-        btn.onclick = () => verifyAnswer(i, btn);
-        optCont.appendChild(btn);
-    });
-    const infoCont = document.getElementById('planet-facts');
-    infoCont.innerHTML = selectedPlanet.data.facts.map(f => `<p>• ${f}</p>`).join('');
-    document.getElementById('question-panel').style.display = 'block';
+    document.getElementById('planet-title').textContent = selectedPlanet.data.name.toUpperCase();
+    document.getElementById('planet-facts').innerHTML = selectedPlanet.data.facts.map(f => `<p>${f}</p>`).join('');
     document.getElementById('planet-info-panel').style.display = 'block';
+    if (type === 'game') {
+        gameState = 'questioning'; document.getElementById('question-text').textContent = selectedPlanet.data.questions[0].q;
+        const opt = document.getElementById('options-container'); opt.innerHTML = '';
+        selectedPlanet.data.questions[0].options.forEach((o, i) => { const b = document.createElement('button'); b.className = 'option-btn'; b.textContent = o; b.onclick = () => verifyAnswer(i, b); opt.appendChild(b); });
+        document.getElementById('question-panel').style.display = 'block';
+    } else { const b = document.getElementById('close-gallery-info'); b.style.display = 'block'; b.onclick = () => { isZooming = false; document.getElementById('planet-info-panel').style.display = 'none'; document.getElementById('planet-name-display').textContent = "PILIH PLANET"; }; }
 }
 
 function verifyAnswer(idx, btn) {
-    const correct = selectedPlanet.data.questions[0].correct;
-    const btns = document.querySelectorAll('.option-btn');
-    btns.forEach(b => b.disabled = true);
-    if (idx === correct) {
-        btn.classList.add('correct');
-        score += diffSettings[window.gameDifficulty].scoreMult;
-    } else {
-        btn.classList.add('wrong');
-        btns[correct].classList.add('correct');
-    }
+    if (idx === selectedPlanet.data.questions[0].correct) { score += 25 * currentWave; Swal.fire({ title: 'VALID!', icon: 'success', timer: 1000, showConfirmButton: false }); selectedPlanet.answered = true; planetsAnsweredInWave++; }
+    else { lives--; score = Math.max(0, score - 15); document.getElementById('lives-counter').textContent = `x${lives}`; if (lives <= 0) location.reload(); Swal.fire({ title: 'EROR!', text: `Energi Berkurang!`, icon: 'error' }); }
     document.getElementById('score').textContent = score;
-    setTimeout(() => {
-        isZooming = false;
-        gameState = 'exploring';
-        document.getElementById('question-panel').style.display = 'none';
-        document.getElementById('planet-info-panel').style.display = 'none';
-        document.getElementById('planet-name-display').textContent = "EKSPLORASI";
-    }, 2000);
+    setTimeout(() => { isZooming = false; gameState = 'exploring'; document.getElementById('question-panel').style.display = 'none'; document.getElementById('planet-info-panel').style.display = 'none'; document.getElementById('planet-name-display').textContent = "READY"; if (planetsAnsweredInWave === planets.length) { currentWave++; startNewWave(); } }, 1200);
 }
 
-function createStars() {
-    const geo = new THREE.BufferGeometry();
-    const pos = [];
-    for(let i=0; i<2000; i++) pos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    stars = new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 0.1}));
-    scene.add(stars);
-}
-
-function onResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+function setupOrbitToggle() { const btn = document.getElementById('orbit-toggle-btn'); btn.onclick = () => { isOrbiting = !isOrbiting; btn.textContent = isOrbiting ? "ORBIT: JALAN" : "ORBIT: BERHENTI"; btn.style.background = isOrbiting ? "linear-gradient(180deg, #00ff88 0%, #009955 100%)" : "linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%)"; }; }
+function updateHighscoreHUD() { document.getElementById('high-score-display').textContent = localStorage.getItem('planetaria_best') || 0; }
+function createStars() { const geo = new THREE.BufferGeometry(); const pos = []; for(let i=0; i<4000; i++) pos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 1.5}))); }
+window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });

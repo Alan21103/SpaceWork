@@ -3,180 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planetaria: Jelajah Dunia Planet</title>
+    <title>Planetaria: Space Odyssey</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Orbitron:wght@400;700&family=Exo+2:wght@300;600&display=swap" rel="stylesheet">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; background: #02050f; font-family: 'Exo 2', sans-serif; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: 'Exo 2', sans-serif; }
 
-        /* --- LAYER MENU UTAMA --- */
+        /* --- MENU UTAMA --- */
         #main-menu {
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100vw; 
-            height: 100vh;
-            
-            /* --- BAGIAN IMPORT GAMBAR BACKGROUND --- */
-            /* Pastikan file gambar Anda berada di folder yang sama dengan file index.html ini */
-            background-image: url('background.jpg'); 
-            background-repeat: no-repeat;
-            background-position: center center;
-            background-size: cover; 
-            
-            display: flex; 
-            flex-direction: column;
-            justify-content: center; 
-            align-items: center; 
-            z-index: 1000; 
-            transition: 0.5s;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: url('background.jpg') no-repeat center center;
+            background-size: cover; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 1000; transition: 0.8s;
         }
-
-        /* --- ANIMASI & GAYA JUDUL --- */
-        .title-container {
-            text-align: center;
-            margin-bottom: 30px;
-            animation: floatTitle 3s ease-in-out infinite;
-        }
-
-        .main-title {
-            font-family: 'Luckiest Guy', cursive;
-            font-size: 85px;
-            margin: 0;
-            background: linear-gradient(180deg, #ffffff 30%, #00d4ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.7));
-            letter-spacing: 5px;
-        }
-
-        .sub-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
-            color: #fffbb0;
-            margin-top: -10px;
-            letter-spacing: 8px;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(255, 251, 176, 0.6);
-        }
-
-        @keyframes floatTitle {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
-        }
-
-        /* --- TOMBOL MENU --- */
-        .menu-container { display: flex; flex-direction: column; gap: 20px; align-items: center; }
-
-        .menu-btn {
-            width: 280px;
-            padding: 15px;
-            font-family: 'Luckiest Guy', cursive;
-            font-size: 26px;
-            color: white;
-            text-transform: uppercase;
-            cursor: pointer;
-            border-radius: 40px; 
-            border: 3px solid #fffbb0; 
-            background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%);
-            box-shadow: 0 6px 0px #b86600, inset 0 2px 5px rgba(255,255,255,0.4);
-            transition: all 0.1s ease;
-            text-shadow: 2px 2px 0px rgba(0,0,0,0.2);
-            letter-spacing: 2px;
-        }
-
-        .menu-btn:hover {
-            transform: scale(1.05) translateY(-3px);
-            background: linear-gradient(180deg, #ffe66d 0%, #ffa726 100%);
-            box-shadow: 0 9px 0px #b86600, inset 0 2px 5px rgba(255,255,255,0.5);
-        }
-
-        .menu-btn:active { transform: translateY(4px); box-shadow: 0 2px 0px #b86600; }
-
-        #selected-level-info {
-            font-family: 'Orbitron', sans-serif;
-            color: #fffbb0; font-weight: bold; margin-bottom: 15px; font-size: 13px;
-            background: rgba(0,0,0,0.7); padding: 8px 25px; border-radius: 30px; border: 1px solid #ff9a00;
-        }
-
-        /* --- WARNA LEVEL --- */
-        .btn-mudah { background: linear-gradient(180deg, #8eff5a 0%, #2dbd00 100%); border-color: #cbffb0; box-shadow: 0 6px 0px #1e7e00; }
-        .btn-sedang { background: linear-gradient(180deg, #fff35c 0%, #ffc400 100%); border-color: #ffffb0; box-shadow: 0 6px 0px #c78c00; }
-        .btn-sulit { background: linear-gradient(180deg, #ff7a5c 0%, #d32f2f 100%); border-color: #ffc0b0; box-shadow: 0 6px 0px #9a0000; }
-
-        /* --- GAME UI --- */
-        #game-interface { display: none; }
-        #canvas-container { width: 100vw; height: 100vh; }
+        .title-container { text-align: center; margin-bottom: 40px; animation: floatTitle 3s ease-in-out infinite; }
+        .main-title { font-family: 'Luckiest Guy', cursive; font-size: 80px; margin: 0; background: linear-gradient(180deg, #ffffff 30%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.7)); }
         
-        .glass-panel {
-            background: rgba(10, 10, 30, 0.85); backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 16px;
-            padding: 20px; color: white; position: fixed; z-index: 100;
+        /* --- DESIGN BARU UNTUK SUB-TITLE --- */
+        .sub-title {
+            font-family: 'Orbitron', sans-serif; /* Font futuristik */
+            font-size: 22px;                     /* Ukuran sedikit diperbesar */
+            color: #e0ffff;                      /* Warna dasar putih kebiruan */
+            margin-top: -10px;
+            letter-spacing: 12px;                /* Spasi antar huruf yang lebar */
+            text-transform: uppercase;           /* Huruf kapital semua */
+            font-weight: 700;                    /* Tebal */
+            /* Efek cahaya neon berlapis */
+            text-shadow: 
+                0 0 5px #00d4ff,
+                0 0 15px #00d4ff,
+                0 0 25px #00d4ff;
         }
+        
+        @keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+        .menu-container { display: flex; flex-direction: column; gap: 20px; align-items: center; }
+        .menu-btn {
+            width: 320px; padding: 18px; font-family: 'Luckiest Guy', cursive; font-size: 24px;
+            color: white; text-transform: uppercase; cursor: pointer; border-radius: 50px; 
+            border: 3px solid #fffbb0; background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%);
+            box-shadow: 0 8px 0px #b86600; transition: 0.2s;
+        }
+        .btn-gallery { background: linear-gradient(180deg, #00d4ff 0%, #0055ff 100%); border-color: #b0f4ff; box-shadow: 0 8px 0px #003399; }
+        .menu-btn:hover { transform: scale(1.05); }
+
+        /* --- UI LAYERS & TOMBOL LAINNYA (TIDAK BERUBAH) --- */
+        .glass-panel { background: rgba(10, 10, 30, 0.85); backdrop-filter: blur(15px); border: 2px solid #00d4ff; border-radius: 25px; padding: 25px; color: white; position: fixed; box-shadow: 0 0 25px rgba(0, 212, 255, 0.4); }
+        #hud { top: 25px; left: 25px; font-family: 'Orbitron', sans-serif; pointer-events: none; width: 260px; z-index: 150; display: none; }
+        #planet-name-display { font-family: 'Luckiest Guy', cursive; font-size: 32px; color: #ffffff; text-shadow: 0 0 10px #00d4ff; margin: 8px 0; text-transform: uppercase; }
+        #question-panel { top: 280px; left: 25px; width: 400px; display: none; pointer-events: auto; z-index: 100; }
+        #planet-info-panel { top: 50%; right: 25px; width: 350px; transform: translateY(-50%); display: none; z-index: 100; }
+        .option-btn { display: block; width: 100%; padding: 16px; margin: 15px 0; font-family: 'Luckiest Guy', cursive; font-size: 22px; color: white; cursor: pointer; border-radius: 40px; border: 3px solid #fffbb0; background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%); box-shadow: 0 6px 0px #b86600; text-align: center; }
+        .back-btn { position: fixed; bottom: 30px; left: 30px; padding: 15px 35px; font-family: 'Luckiest Guy', cursive; font-size: 20px; color: white; text-transform: uppercase; cursor: pointer; border-radius: 50px; border: 3px solid #ffcccc; background: linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%); box-shadow: 0 8px 0px #880000; z-index: 2000; transition: 0.2s; display: none; }
+        .back-btn:active { transform: translateY(4px); box-shadow: 0 2px 0px #880000; }
+        #orbit-toggle-btn { position: fixed; bottom: 30px; right: 30px; padding: 15px 35px; font-family: 'Luckiest Guy', cursive; font-size: 20px; color: white; background: linear-gradient(180deg, #00ff88 0%, #009955 100%); border: 3px solid #fff; border-radius: 40px; cursor: pointer; box-shadow: 0 6px 0px #005533; z-index: 2000; display: none; transition: 0.2s; }
+        #planet-facts p { margin-bottom: 12px; padding-left: 20px; position: relative; line-height: 1.6; font-size: 15px; }
+        #planet-facts p::before { content: '►'; position: absolute; left: 0; color: #00d4ff; font-size: 12px; }
+        .settings-wrapper { position: fixed; top: 25px; right: 25px; z-index: 3000; }
+        .gear-btn { width: 55px; height: 55px; border-radius: 50%; border: 2px solid #fffbb0; background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%); color: white; font-size: 26px; cursor: pointer; box-shadow: 0 4px 0px #b86600; display: flex; align-items: center; justify-content: center; }
+        .config-panel { position: absolute; top: 70px; right: 0; width: 200px; background: rgba(10, 10, 30, 0.95); border: 2px solid #00d4ff; border-radius: 15px; padding: 15px; display: none; flex-direction: column; gap: 10px; }
+        .panel-btn { width: 100%; padding: 10px; font-family: 'Orbitron', sans-serif; font-size: 11px; color: white; background: rgba(255, 255, 255, 0.1); border: 1px solid #00d4ff; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
+
+    <div id="canvas-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;"></div>
+
+    <div class="settings-wrapper">
+        <button class="gear-btn" onclick="togglePanel('config-menu', event)">⚙️</button>
+        <div id="config-menu" class="config-panel">
+            <button class="panel-btn" onclick="location.reload()">KE MENU UTAMA</button>
+        </div>
+    </div>
 
     <div id="main-menu">
         <div class="title-container">
             <h1 class="main-title">PLANETARIA</h1>
             <div class="sub-title">Jelajah Dunia Planet</div>
         </div>
-
-        <div id="primary-menu" class="menu-container">
-            <div id="selected-level-info">SIAP JELAJAH // LEVEL: <span id="current-lvl-tag">SEDANG</span></div>
-            <button id="play-btn" class="menu-btn">MAIN</button>
-            <button id="select-level-btn" class="menu-btn">PILIH LEVEL</button>
-        </div>
-
-        <div id="level-menu" class="menu-container" style="display: none;">
-            <button class="menu-btn btn-mudah" onclick="setDifficulty('mudah')">MUDAH</button>
-            <button class="menu-btn btn-sedang" onclick="setDifficulty('sedang')">SEDANG</button>
-            <button class="menu-btn btn-sulit" onclick="setDifficulty('sulit')">SULIT</button>
-            <button onclick="toggleLevelMenu(false)" style="color: #fffbb0; font-family: 'Orbitron', sans-serif; background: none; border: none; cursor: pointer; margin-top: 15px; font-size: 12px;">[ CANCEL ]</button>
+        <div class="menu-container">
+            <button id="play-btn" class="menu-btn">Mulai Tantangan</button>
+            <button id="gallery-btn" class="menu-btn btn-gallery">Galeri Planet</button>
         </div>
     </div>
 
-    <div id="game-interface">
-        <div id="canvas-container"></div>
-        <div id="hud" class="glass-panel" style="top: 25px; left: 25px;">
-            <div style="font-family: 'Orbitron', sans-serif; color: #00d4ff; font-size: 11px;">STATUS: <span id="diff-label">SEDANG</span></div>
-            <div id="planet-name-display" style="font-family: 'Luckiest Guy', cursive; font-size: 30px; text-shadow: 0 0 10px #00d4ff;">EKSPLORASI</div>
-            <div style="font-family: 'Orbitron', sans-serif; font-size: 16px;">SCORE: <span id="score" style="color: #ff9a00;">0</span></div>
-        </div>
+    <div id="game-ui">
+        <button id="back-to-menu" class="back-btn" onclick="location.reload()">KEMBALI</button>
+        <button id="orbit-toggle-btn">ORBIT: JALAN</button>
+
+        <div id="hud" class="glass-panel">
+            <div id="sector-info" style="color: #00d4ff; font-size: 11px; letter-spacing: 2px;">SECTOR: <span id="wave-display">1</span></div>
+            <div id="planet-name-display">PILIH PLANET</div>
+            <div id="score-info" style="font-size: 18px;">SCORE: <span id="score" style="color: #ff9a00;">0</span></div>
+            <div id="best-info" style="font-size: 12px; color: #fffbb0;">BEST: <span id="high-score-display">0</span></div>
+            <div id="energy-info" style="font-size: 16px; margin-top: 10px; font-family: 'Orbitron', sans-serif;">ENERGY: <span id="lives-counter" style="color: #ff4500; font-weight: bold;">x3</span></div>
         </div>
 
+        <div id="question-panel" class="glass-panel">
+            <div style="font-family: 'Luckiest Guy', cursive; font-size: 26px; color: #fffbb0; margin-bottom: 20px;">🪐 ANALISIS DATA</div>
+            <div id="question-text" style="font-family: 'Orbitron', sans-serif; font-size: 18px; margin-bottom: 30px; border-left: 4px solid #00d4ff; padding-left: 15px; line-height: 1.6;"></div>
+            <div id="options-container"></div>
+        </div>
+        
+        <div id="planet-info-panel" class="glass-panel">
+            <h2 id="planet-title" style="font-family: 'Luckiest Guy', cursive; font-size: 32px; background: linear-gradient(180deg, #ff00ff 30%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 20px 0;">PLANET</h2>
+            <div id="planet-facts"></div>
+            <button id="close-gallery-info" style="display:none; width: 100%; margin-top: 15px; padding: 12px; border-radius: 50px; background: #ff4500; color: white; font-family: 'Luckiest Guy'; border: 2px solid white; cursor: pointer; box-shadow: 0 6px 0px #880000;">TUTUP INFO</button>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
     <script src="sketch.js"></script>
+    
     <script>
-        const primaryMenu = document.getElementById('primary-menu');
-        const levelMenu = document.getElementById('level-menu');
-
-        function toggleLevelMenu(show) {
-            primaryMenu.style.display = show ? 'none' : 'flex';
-            levelMenu.style.display = show ? 'flex' : 'none';
-        }
-
-        document.getElementById('select-level-btn').onclick = () => toggleLevelMenu(true);
+        const mainMenu = document.getElementById('main-menu');
+        const hud = document.getElementById('hud');
+        const backBtn = document.getElementById('back-to-menu');
+        const orbitBtn = document.getElementById('orbit-toggle-btn');
         
         document.getElementById('play-btn').onclick = () => {
-            document.getElementById('main-menu').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('main-menu').style.display = 'none';
-                document.getElementById('game-interface').style.display = 'block';
-                if (typeof initGame === "function") initGame();
-            }, 500);
+            mainMenu.style.display = 'none';
+            hud.style.display = 'block';
+            backBtn.style.display = 'block';
+            document.getElementById('planet-name-display').textContent = "READY";
+            initProject('game');
         };
 
-        function setDifficulty(lvl) {
-            if (typeof window.gameDifficulty !== 'undefined') {
-                window.gameDifficulty = lvl;
-                document.getElementById('current-lvl-tag').textContent = lvl.toUpperCase();
-                document.getElementById('diff-label').textContent = lvl.toUpperCase();
-                toggleLevelMenu(false);
-            }
-        }
+        document.getElementById('gallery-btn').onclick = () => {
+            mainMenu.style.display = 'none';
+            hud.style.display = 'block';
+            orbitBtn.style.display = 'block';
+            document.getElementById('sector-info').style.display = 'none';
+            document.getElementById('score-info').style.display = 'none';
+            document.getElementById('best-info').style.display = 'none';
+            document.getElementById('energy-info').style.display = 'none';
+            backBtn.style.display = 'block';
+            initProject('gallery');
+        };
+
+        function togglePanel(id, e) { e.stopPropagation(); const p = document.getElementById(id); p.style.display = p.style.display === 'flex' ? 'none' : 'flex'; }
+        window.onclick = () => document.getElementById('config-menu').style.display = 'none';
     </script>
 </body>
 </html>
