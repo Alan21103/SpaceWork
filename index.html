@@ -1,203 +1,182 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interstellar Mission - 3D Space Game</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+    <title>Planetaria: Jelajah Dunia Planet</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Orbitron:wght@400;700&family=Exo+2:wght@300;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: #02050f;
-            cursor: crosshair;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-        }
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #02050f; font-family: 'Exo 2', sans-serif; }
 
-        #canvas-container {
-            width: 100vw;
+        /* --- LAYER MENU UTAMA --- */
+        #main-menu {
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
             height: 100vh;
+            
+            /* --- BAGIAN IMPORT GAMBAR BACKGROUND --- */
+            /* Pastikan file gambar Anda berada di folder yang sama dengan file index.html ini */
+            background-image: url('background.jpg'); 
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover; 
+            
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000; 
+            transition: 0.5s;
         }
 
-        #ui-container {
-            position: absolute;
-            top: 25px;
-            left: 25px;
-            z-index: 10;
-            pointer-events: none;
+        /* --- ANIMASI & GAYA JUDUL --- */
+        .title-container {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: floatTitle 3s ease-in-out infinite;
         }
 
-        #question-panel {
-            position: fixed;
-            top: 50%;
-            left: 20%;
-            transform: translate(-50%, -50%);
-            z-index: 100;
-            pointer-events: all;
-            display: none;
-            animation: slideInLeft 0.5s ease-out;
-        }
-
-        @keyframes slideInLeft {
-            from { opacity: 0; transform: translate(-100%, -50%); }
-            to { opacity: 1; transform: translate(-50%, -50%); }
-        }
-
-        .glass-panel {
-            background: rgba(10, 10, 30, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 20px;
-            color: white;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
-        }
-
-        h2 {
+        .main-title {
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 85px;
             margin: 0;
-            font-size: 14px;
-            letter-spacing: 2px;
-            color: #00d4ff;
-            text-transform: uppercase;
-        }
-
-        #planet-name {
-            margin: 5px 0;
-            font-size: 32px;
-            font-weight: bold;
-            text-shadow: 0 0 15px currentColor;
-            background: linear-gradient(45deg, #00d4ff, #ff00ff);
+            background: linear-gradient(180deg, #ffffff 30%, #00d4ff 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.7));
+            letter-spacing: 5px;
         }
 
-        #score-display {
-            font-size: 18px;
-            margin-top: 10px;
-            opacity: 0.8;
-        }
-
-        .option-btn {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: left;
-        }
-
-        .option-btn:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: #00d4ff;
-            transform: translateX(5px);
-        }
-
-        .option-btn.correct {
-            background: rgba(0, 255, 100, 0.3);
-            border-color: #00ff64;
-            animation: pulse 0.5s ease;
-        }
-
-        .option-btn.wrong {
-            background: rgba(255, 0, 0, 0.3);
-            border-color: #ff0040;
-            animation: shake 0.5s ease;
-        }
-
-        #instruction {
-            position: absolute;
-            bottom: 30px;
-            width: 100%;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.6);
-            letter-spacing: 1px;
+        .sub-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            color: #fffbb0;
+            margin-top: -10px;
+            letter-spacing: 8px;
             text-transform: uppercase;
-            font-size: 12px;
-            pointer-events: none;
-            animation: fadeInOut 3s ease-in-out infinite;
+            text-shadow: 0 0 10px rgba(255, 251, 176, 0.6);
         }
 
-        #planet-info-panel {
-            position: fixed;
-            top: 50%;
-            right: 5%;
-            transform: translateY(-50%);
-            z-index: 100;
-            pointer-events: none;
-            display: none;
-            animation: slideInRight 0.5s ease-out;
+        @keyframes floatTitle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
         }
 
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translate(100%, -50%); }
-            to { opacity: 1; transform: translateY(-50%); }
-        }
+        /* --- TOMBOL MENU --- */
+        .menu-container { display: flex; flex-direction: column; gap: 20px; align-items: center; }
 
-        .planet-info-box {
-            background: rgba(10, 10, 30, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 25px;
-            color: white;
-            width: 350px;
-        }
-
-        .planet-fact {
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        #texture-info {
-            position: fixed;
-            bottom: 20px;
-            left: 25px;
-            background: rgba(10, 10, 30, 0.85);
-            border-radius: 12px;
+        .menu-btn {
+            width: 280px;
             padding: 15px;
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 26px;
             color: white;
-            font-size: 11px;
-            z-index: 10;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 40px; 
+            border: 3px solid #fffbb0; 
+            background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%);
+            box-shadow: 0 6px 0px #b86600, inset 0 2px 5px rgba(255,255,255,0.4);
+            transition: all 0.1s ease;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+            letter-spacing: 2px;
+        }
+
+        .menu-btn:hover {
+            transform: scale(1.05) translateY(-3px);
+            background: linear-gradient(180deg, #ffe66d 0%, #ffa726 100%);
+            box-shadow: 0 9px 0px #b86600, inset 0 2px 5px rgba(255,255,255,0.5);
+        }
+
+        .menu-btn:active { transform: translateY(4px); box-shadow: 0 2px 0px #b86600; }
+
+        #selected-level-info {
+            font-family: 'Orbitron', sans-serif;
+            color: #fffbb0; font-weight: bold; margin-bottom: 15px; font-size: 13px;
+            background: rgba(0,0,0,0.7); padding: 8px 25px; border-radius: 30px; border: 1px solid #ff9a00;
+        }
+
+        /* --- WARNA LEVEL --- */
+        .btn-mudah { background: linear-gradient(180deg, #8eff5a 0%, #2dbd00 100%); border-color: #cbffb0; box-shadow: 0 6px 0px #1e7e00; }
+        .btn-sedang { background: linear-gradient(180deg, #fff35c 0%, #ffc400 100%); border-color: #ffffb0; box-shadow: 0 6px 0px #c78c00; }
+        .btn-sulit { background: linear-gradient(180deg, #ff7a5c 0%, #d32f2f 100%); border-color: #ffc0b0; box-shadow: 0 6px 0px #9a0000; }
+
+        /* --- GAME UI --- */
+        #game-interface { display: none; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        
+        .glass-panel {
+            background: rgba(10, 10, 30, 0.85); backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 16px;
+            padding: 20px; color: white; position: fixed; z-index: 100;
         }
     </style>
 </head>
 <body>
-    <div id="canvas-container"></div>
 
-    <div id="ui-container">
-        <div class="glass-panel">
-            <h2>Level <span id="level-num">1</span></h2>
-            <div id="planet-name">EKSPLORASI ANGKASA</div>
-            <div id="score-display">SKOR: <span id="score">0</span></div>
+    <div id="main-menu">
+        <div class="title-container">
+            <h1 class="main-title">PLANETARIA</h1>
+            <div class="sub-title">Jelajah Dunia Planet</div>
+        </div>
+
+        <div id="primary-menu" class="menu-container">
+            <div id="selected-level-info">SIAP JELAJAH // LEVEL: <span id="current-lvl-tag">SEDANG</span></div>
+            <button id="play-btn" class="menu-btn">MAIN</button>
+            <button id="select-level-btn" class="menu-btn">PILIH LEVEL</button>
+        </div>
+
+        <div id="level-menu" class="menu-container" style="display: none;">
+            <button class="menu-btn btn-mudah" onclick="setDifficulty('mudah')">MUDAH</button>
+            <button class="menu-btn btn-sedang" onclick="setDifficulty('sedang')">SEDANG</button>
+            <button class="menu-btn btn-sulit" onclick="setDifficulty('sulit')">SULIT</button>
+            <button onclick="toggleLevelMenu(false)" style="color: #fffbb0; font-family: 'Orbitron', sans-serif; background: none; border: none; cursor: pointer; margin-top: 15px; font-size: 12px;">[ CANCEL ]</button>
         </div>
     </div>
 
-    <div id="question-panel">
-        <div class="glass-panel" style="width: 450px;">
-            <h2 style="font-size: 18px; margin-bottom: 15px;">🪐 IDENTIFIKASI PLANET</h2>
-            <div id="question-text"></div>
-            <div id="options-container"></div>
-            <div id="feedback"></div>
+    <div id="game-interface">
+        <div id="canvas-container"></div>
+        <div id="hud" class="glass-panel" style="top: 25px; left: 25px;">
+            <div style="font-family: 'Orbitron', sans-serif; color: #00d4ff; font-size: 11px;">STATUS: <span id="diff-label">SEDANG</span></div>
+            <div id="planet-name-display" style="font-family: 'Luckiest Guy', cursive; font-size: 30px; text-shadow: 0 0 10px #00d4ff;">EKSPLORASI</div>
+            <div style="font-family: 'Orbitron', sans-serif; font-size: 16px;">SCORE: <span id="score" style="color: #ff9a00;">0</span></div>
         </div>
-    </div>
-
-    <div id="planet-info-panel">
-        <div class="planet-info-box">
-            <div id="planet-title" style="font-size: 28px; font-weight: bold; margin-bottom: 15px;">PLANET</div>
-            <div id="planet-facts"></div>
         </div>
-    </div>
-
-    <div id="instruction">🖱️ Klik pada planet untuk mempelajarinya!</div>
 
     <script src="sketch.js"></script>
+    <script>
+        const primaryMenu = document.getElementById('primary-menu');
+        const levelMenu = document.getElementById('level-menu');
+
+        function toggleLevelMenu(show) {
+            primaryMenu.style.display = show ? 'none' : 'flex';
+            levelMenu.style.display = show ? 'flex' : 'none';
+        }
+
+        document.getElementById('select-level-btn').onclick = () => toggleLevelMenu(true);
+        
+        document.getElementById('play-btn').onclick = () => {
+            document.getElementById('main-menu').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('main-menu').style.display = 'none';
+                document.getElementById('game-interface').style.display = 'block';
+                if (typeof initGame === "function") initGame();
+            }, 500);
+        };
+
+        function setDifficulty(lvl) {
+            if (typeof window.gameDifficulty !== 'undefined') {
+                window.gameDifficulty = lvl;
+                document.getElementById('current-lvl-tag').textContent = lvl.toUpperCase();
+                document.getElementById('diff-label').textContent = lvl.toUpperCase();
+                toggleLevelMenu(false);
+            }
+        }
+    </script>
 </body>
 </html>
