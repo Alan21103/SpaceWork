@@ -1,0 +1,296 @@
+/* --- GLOBAL STYLE --- */
+body, html { 
+    margin: 0; 
+    padding: 0; 
+    overflow: hidden; 
+    background: #000; 
+    font-family: 'Exo 2', sans-serif; 
+    user-select: none; 
+}
+
+/* --- MAIN MENU --- */
+#main-menu { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh; 
+    background: url('/images/background.jpg') no-repeat center center; 
+    background-size: cover; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    z-index: 1000; 
+    transition: 0.5s; 
+}
+
+.main-title { 
+    font-family: 'Luckiest Guy', cursive; 
+    font-size: 85px; 
+    margin: 0; 
+    background: linear-gradient(180deg, #ffffff 30%, #00d4ff 100%); 
+    -webkit-background-clip: text; 
+    -webkit-text-fill-color: transparent; 
+    filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.7)); 
+}
+
+.sub-title { 
+    font-family: 'Orbitron', sans-serif; 
+    font-size: 22px; 
+    color: #e0ffff; 
+    margin-top: -10px; 
+    letter-spacing: 12px; 
+    text-transform: uppercase; 
+    font-weight: 700; 
+    text-shadow: 0 0 5px #00d4ff, 0 0 15px #00d4ff, 0 0 25px #00d4ff; 
+}
+
+.menu-container { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 35px; 
+    margin-top: 50px; 
+}
+
+.menu-btn { 
+    width: 320px; 
+    padding: 18px; 
+    font-family: 'Luckiest Guy'; 
+    font-size: 26px; 
+    color: white; 
+    cursor: pointer; 
+    border-radius: 50px; 
+    border: 3px solid #fffbb0; 
+    background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%); 
+    box-shadow: 0 8px 0px #b86600; 
+    transition: 0.2s; 
+    text-transform: uppercase; 
+}
+
+/* --- UI CONTROLS --- */
+.back-btn { 
+    position: fixed; 
+    bottom: 30px; 
+    left: 30px; 
+    padding: 15px 35px; 
+    font-family: 'Luckiest Guy'; 
+    font-size: 20px; 
+    color: white; 
+    border-radius: 50px; 
+    border: 3px solid #ffcccc; 
+    background: linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%); 
+    box-shadow: 0 6px 0px #880000; 
+    z-index: 2000; 
+    display: none; 
+    text-transform: uppercase; 
+}
+
+#orbit-toggle-btn { 
+    position: fixed; 
+    bottom: 30px; 
+    right: 30px; 
+    padding: 15px 35px; 
+    font-family: 'Luckiest Guy'; 
+    font-size: 20px; 
+    color: white; 
+    border-radius: 50px; 
+    border: 3px solid #fff; 
+    cursor: pointer; 
+    z-index: 2000; 
+    display: none; 
+    box-shadow: 0 6px 0px #005533; 
+    background: linear-gradient(180deg, #00ff88 0%, #009955 100%); 
+}
+
+/* --- GLASS PANELS --- */
+.glass-panel { 
+    background: rgba(10, 10, 30, 0.85); 
+    backdrop-filter: blur(15px); 
+    border: 2px solid #00d4ff; 
+    border-radius: 25px; 
+    padding: 25px; 
+    color: white; 
+    position: fixed; 
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.4); 
+}
+
+#hud { 
+    top: 25px; 
+    left: 25px; 
+    font-family: 'Orbitron'; 
+    pointer-events: none; 
+    width: 280px; 
+    z-index: 150; 
+    display: none; 
+}
+
+#question-panel { 
+    top: 280px; 
+    left: 25px; 
+    width: 420px; 
+    display: none; 
+    pointer-events: auto; 
+    z-index: 100; 
+}
+
+#planet-info-panel { 
+    top: 50%; 
+    right: 25px; 
+    width: 350px; 
+    transform: translateY(-50%); 
+    display: none; 
+    z-index: 100; 
+}
+
+/* --- BUTTON ANIMATIONS --- */
+.option-btn { 
+    display: block; 
+    width: 100%; 
+    padding: 16px; 
+    margin: 15px 0; 
+    font-family: 'Luckiest Guy'; 
+    font-size: 22px; 
+    color: white; 
+    cursor: pointer; 
+    border-radius: 40px; 
+    border: 3px solid #fffbb0; 
+    background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%); 
+    box-shadow: 0 8px 0px #b86600; 
+    text-align: center; 
+    transition: 0.3s; 
+}
+
+.shake-anim { 
+    animation: shake 0.4s both; 
+}
+
+@keyframes shake {
+    10%, 90% { transform: translate3d(-4px, 0, 0); }
+    20%, 80% { transform: translate3d(8px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-12px, 0, 0); }
+    40%, 60% { transform: translate3d(12px, 0, 0); }
+}
+
+/* --- SETTINGS GEAR --- */
+.settings-wrapper { 
+    position: fixed; 
+    top: 25px; 
+    right: 25px; 
+    z-index: 5000; 
+}
+
+.gear-btn { 
+    width: 55px; 
+    height: 55px; 
+    border-radius: 50%; 
+    border: 2px solid #fffbb0; 
+    background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%); 
+    color: white; 
+    font-size: 26px; 
+    cursor: pointer; 
+    box-shadow: 0 4px 0px #b86600; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+
+.config-panel { 
+    position: absolute; 
+    top: 70px; 
+    right: 0; 
+    width: 220px; 
+    background: rgba(10, 10, 30, 0.95); 
+    border: 2px solid #00d4ff; 
+    border-radius: 15px; 
+    padding: 15px; 
+    display: none; 
+    flex-direction: column; 
+    gap: 12px; 
+}
+
+.panel-btn { 
+    width: 100%; 
+    padding: 12px; 
+    font-family: 'Orbitron'; 
+    font-size: 11px; 
+    color: white; 
+    background: rgba(255, 255, 255, 0.1); 
+    border: 1px solid #00d4ff; 
+    border-radius: 8px; 
+    cursor: pointer; 
+}
+
+/* --- SWEETALERT CUSTOM --- */
+.swal-popup { 
+    border: 2px solid #00d4ff !important; 
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.6) !important; 
+    border-radius: 30px !important; 
+    backdrop-filter: blur(20px) !important; 
+}
+
+.swal-title { 
+    font-family: 'Luckiest Guy' !important; 
+    font-size: 38px !important; 
+    color: #fff !important; 
+    text-shadow: 0 0 10px #00d4ff !important; 
+    text-transform: uppercase; 
+}
+
+.swal-text { 
+    font-family: 'Orbitron' !important; 
+    font-size: 16px !important; 
+    color: #e0ffff !important; 
+    letter-spacing: 1px; 
+}
+
+.swal-button { 
+    font-family: 'Luckiest Guy' !important; 
+    font-size: 20px !important; 
+    padding: 12px 30px !important; 
+    border-radius: 50px !important; 
+    border: 2px solid #fffbb0 !important; 
+    background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%) !important; 
+    box-shadow: 0 6px 0px #b86600 !important; 
+    color: white !important; 
+}
+
+/* --- ROCKET ANIMATION --- */
+#rocket-container { 
+    position: fixed; 
+    top: 40%; 
+    left: -100vw; 
+    display: flex; 
+    align-items: center; 
+    z-index: 9999; 
+    pointer-events: none; 
+    opacity: 0; 
+    transition: left 3s cubic-bezier(0.45, 0.05, 0.55, 0.95), opacity 0.3s; 
+}
+
+#rocket-body { 
+    font-size: 120px; 
+    filter: drop-shadow(0 0 20px #ff4500); 
+    transform: rotate(45deg); 
+}
+
+#smoke-trail { 
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.85), rgba(0, 212, 255, 0.5)); 
+    height: 80px; 
+    padding: 10px 100px 10px 50px; 
+    border-radius: 100px 0 0 100px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    box-shadow: -20px 0 30px rgba(255, 255, 255, 0.2); 
+    margin-left: -40px; 
+}
+
+#smoke-text { 
+    font-family: 'Luckiest Guy'; 
+    font-size: 42px; 
+    color: #000; 
+    text-transform: uppercase; 
+    white-space: nowrap; 
+    letter-spacing: 2px; 
+}
