@@ -28,41 +28,29 @@ function playCorrectSound() { if (!isMuted) { correctSound.currentTime = 0; corr
 function playWrongSound() { if (!isMuted) { wrongSound.currentTime = 0; wrongSound.play().catch(e => {}); } }
 function playRocketSound() { if (!isMuted) { rocketSound.currentTime = 0; rocketSound.play().catch(e => {}); } }
 
-// FUNGSI GAME OVER CUSTOM
 function triggerPixelGameOver() {
     if (!isMuted) {
         meteorAmbience.pause();
         gameOverSound.currentTime = 0;
         gameOverSound.play().catch(e => {});
     }
-    
     const screen = document.getElementById('pixel-game-over');
     const container = document.getElementById('explosion-container');
     screen.style.display = 'flex';
-
-    // Membuat partikel ledakan kotak (pixel)
     for (let i = 0; i < 40; i++) {
         const pixel = document.createElement('div');
         pixel.className = 'explosion-pixel';
-        
-        // Random arah ledakan
         const angle = Math.random() * Math.PI * 2;
         const dist = 100 + Math.random() * 200;
         const tx = Math.cos(angle) * dist + 'px';
         const ty = Math.sin(angle) * dist + 'px';
-        
         pixel.style.setProperty('--tx', tx);
         pixel.style.setProperty('--ty', ty);
-        
-        // Warna api acak (merah, oranye, kuning)
         const colors = ['#ff0000', '#ff4500', '#ff8c00', '#ffd700'];
         pixel.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        
         container.appendChild(pixel);
-        // Hapus setelah animasi
         setTimeout(() => pixel.remove(), 2000);
     }
-
     setTimeout(() => location.reload(), 4500);
 }
 
@@ -121,13 +109,66 @@ function spawnSun() {
 function buildGallerySystem() {
     planets = []; orbitLines = [];
     planetData.forEach((data, index) => {
-        if (index === 0) return;
-        const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.size, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), shininess: 25 }));
+        if (index === 0) return; // Skip Matahari
+
+        // 1. Buat Body Planet
+        const mesh = new THREE.Mesh(
+            new THREE.SphereGeometry(data.size, 64, 64), 
+            new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), shininess: 25 })
+        );
+
+        // --- TAMBAHAN KHUSUS SATURNUS ---
+        if (data.name === 'Saturnus') {
+        // 1. Load Tekstur Cincin yang Realistik (Gunakan file PNG transparan)
+        const ringTexture = textureLoader.load('images/saturn_ring.png');
+        
+        // 2. Gunakan RingBufferGeometry untuk performa lebih ringan & presisi
+        // Inner radius (1.4x), Outer radius (2.4x)
+        const ringGeo = new THREE.RingBufferGeometry(data.size * 1.4, data.size * 2.4, 128);
+        
+        // 3. Atur UV Mapping agar tekstur melingkar sempurna
+        const pos = ringGeo.attributes.position;
+        const v3 = new THREE.Vector3();
+        for (let i = 0; i < pos.count; i++) {
+            v3.fromBufferAttribute(pos, i);
+            ringGeo.attributes.uv.setXY(i, v3.length() < data.size * 1.9 ? 0 : 1, 1);
+        }
+
+        // 4. Material dengan efek transparan dan pencahayaan lembut
+        const ringMat = new THREE.MeshPhongMaterial({
+            map: ringTexture,
+            side: THREE.DoubleSide, // Agar terlihat dari bawah dan atas
+            transparent: true,
+            opacity: 0.8,
+            shininess: 0,
+            blending: THREE.NormalBlending
+        });
+
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+
+        // 5. Kemiringan khas Saturnus (sekitar 27 derajat)
+        ringMesh.rotation.x = Math.PI / 2.2;
+        
+        // Tambahkan ke planet utama
+        mesh.add(ringMesh);
+        }
+        // -------------------------------
+
         mesh.add(createAtmosphere(data.size, data.glow));
-        const orbitLine = new THREE.Mesh(new THREE.RingGeometry(data.orbit - 0.2, data.orbit + 0.2, 128), new THREE.MeshBasicMaterial({ color: 0x00d4ff, side: THREE.DoubleSide, transparent: true, opacity: 0.2 }));
-        orbitLine.rotation.x = Math.PI / 2; scene.add(orbitLine); orbitLines.push(orbitLine);
+
+        // 2. Buat Garis Orbit
+        const orbitLine = new THREE.Mesh(
+            new THREE.RingGeometry(data.orbit - 0.2, data.orbit + 0.2, 128), 
+            new THREE.MeshBasicMaterial({ color: 0x00d4ff, side: THREE.DoubleSide, transparent: true, opacity: 0.2 })
+        );
+        orbitLine.rotation.x = Math.PI / 2; 
+        scene.add(orbitLine); 
+        orbitLines.push(orbitLine);
+
+        // 3. Atur Posisi Acak Awal
         const angle = Math.random() * Math.PI * 2;
         mesh.position.set(Math.cos(angle) * data.orbit, 0, Math.sin(angle) * data.orbit);
+        
         scene.add(mesh);
         planets.push({ mesh, data, rotSpeed: 0.01, orbitAngle: angle, answered: false });
     });
@@ -135,17 +176,23 @@ function buildGallerySystem() {
 
 function startNewWave() {
     planets.forEach(p => scene.remove(p.mesh)); planets = []; planetsAnsweredInWave = 0;
-    const sectorTxt = document.getElementById('current-sector-text');
-    if(sectorTxt) sectorTxt.textContent = sectorIndex + 1;
-    const count = Math.min(2 + sectorIndex, 8); 
+    // ... kode lama ...
     for (let i = 1; i <= count; i++) {
         const data = planetData[i];
         const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.size * 4.5, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), shininess: 25 }));
+        
+        // --- TAMBAHAN CINCIN DI MODE GAME ---
+        if (data.name === 'Saturnus') {
+            const ringGeo = new THREE.RingGeometry(data.size * 4.5 * 1.4, data.size * 4.5 * 2.2, 64);
+            const ringMat = new THREE.MeshPhongMaterial({ color: 0xEAD6B0, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.rotation.x = Math.PI / 2.2;
+            mesh.add(ringMesh);
+        }
+        // ------------------------------------
+
         mesh.add(createAtmosphere(data.size * 4.5, data.glow));
-        const angle = ((i-1) / count) * Math.PI * 2;
-        mesh.position.set(Math.cos(angle) * 120, Math.sin(angle) * 120, 0);
-        scene.add(mesh);
-        planets.push({ mesh, data, rotSpeed: 0.015, answered: false });
+        // ... sisa kode startNewWave ...
     }
 }
 
@@ -186,8 +233,7 @@ function animate() {
     planets.forEach(p => { 
         p.mesh.rotation.y += p.rotSpeed; 
         if (!isZooming && currentMode === 'gallery' && isOrbiting) {
-            p.orbitAngle += p.data.orbitSpeed;
-            p.mesh.position.set(Math.cos(p.orbitAngle) * p.data.orbit, 0, Math.sin(p.orbitAngle) * p.data.orbit);
+            p.orbitAngle += p.data.orbitSpeed; p.mesh.position.set(Math.cos(p.orbitAngle) * p.data.orbit, 0, Math.sin(p.orbitAngle) * p.data.orbit);
         }
     });
     updateMeteors();
@@ -195,13 +241,17 @@ function animate() {
         camera.position.x += (Math.random() - 0.5) * shakeIntensity; camera.position.y += (Math.random() - 0.5) * shakeIntensity;
         shakeIntensity *= 0.92; if (shakeIntensity < 0.05) shakeIntensity = 0;
     }
+
+    // --- LOGIKA ZOOM DIPERBAIKI ---
     if (isZooming && selectedPlanet) {
         controls.enabled = false;
         const pPos = selectedPlanet.mesh.position.clone();
-        let zoom = currentMode === 'game' ? 25 : selectedPlanet.data.size * 4.2;
-        camera.position.lerp(new THREE.Vector3(pPos.x - 15, pPos.y, pPos.z + zoom), 0.08);
-        camera.lookAt(new THREE.Vector3(pPos.x - 15, pPos.y, pPos.z));
+        // Offset agar kamera tidak menabrak planet, tapi tetap fokus ke planet
+        let zoomDist = currentMode === 'game' ? 25 : selectedPlanet.data.size * 5;
+        camera.position.lerp(new THREE.Vector3(pPos.x, pPos.y + 2, pPos.z + zoomDist), 0.08);
+        camera.lookAt(pPos); // Fokus tepat ke planet
     } else { if(controls) { controls.enabled = true; controls.update(); } }
+    
     if(renderer && scene && camera) renderer.render(scene, camera);
 }
 
@@ -239,7 +289,16 @@ function showUI(type) {
         document.getElementById('planet-info-panel').style.display = 'block';
         const b = document.getElementById('close-gallery-info'); b.style.display = 'block';
         b.onclick = () => { 
-            playClickSound(); isZooming = false; document.getElementById('planet-info-panel').style.display = 'none'; 
+            playClickSound(); 
+            isZooming = false; 
+            // Kembalikan orbit saat info ditutup
+            isOrbiting = true;
+            const orbitBtn = document.getElementById('orbit-toggle-btn');
+            if(orbitBtn) {
+                orbitBtn.textContent = "ORBIT: JALAN";
+                orbitBtn.style.background = "linear-gradient(180deg, #00ff88 0%, #009955 100%)";
+            }
+            document.getElementById('planet-info-panel').style.display = 'none'; 
             document.getElementById('planet-name-display').textContent = "PILIH PLANET"; 
             if(sunMesh) sunMesh.visible = true; orbitLines.forEach(l => l.visible = true); planets.forEach(p => p.mesh.visible = true);
         };
