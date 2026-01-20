@@ -6,21 +6,8 @@ let score = 0, lives = 3, sectorIndex = 0, planetsAnsweredInWave = 0, shakeInten
 let isMuted = false;
 
 // --- AUDIO SETUP ---
-const bgMusic = new Audio('assets/bgm.mp3'); 
-bgMusic.loop = true;
-bgMusic.volume = 0.5;
-
-const meteorAmbience = new Audio('assets/meteor.mp3'); 
-meteorAmbience.loop = true;
-meteorAmbience.volume = 0.4;
-
-const clickSound = new Audio('assets/click.mp3');
-const correctSound = new Audio('assets/correct.mp3');
-const wrongSound = new Audio('assets/wrong.mp3');
-const rocketSound = new Audio('assets/rocket.mp3');
-const gameOverSound = new Audio('assets/over.mp3');
-gameOverSound.volume = 0.7;
-
+const bgMusic = new Audio('assets/bgm.mp3'), meteorAmbience = new Audio('assets/meteor.mp3'), clickSound = new Audio('assets/click.mp3'), correctSound = new Audio('assets/correct.mp3'), wrongSound = new Audio('assets/wrong.mp3'), rocketSound = new Audio('assets/rocket.mp3'), gameOverSound = new Audio('assets/over.mp3');
+bgMusic.loop = true; bgMusic.volume = 0.5; meteorAmbience.loop = true; meteorAmbience.volume = 0.4; gameOverSound.volume = 0.7;
 bgMusic.play().catch(e => console.log("Menunggu interaksi."));
 
 function playClickSound() { if (!isMuted) { clickSound.currentTime = 0; clickSound.play().catch(e => {}); } }
@@ -28,53 +15,22 @@ function playCorrectSound() { if (!isMuted) { correctSound.currentTime = 0; corr
 function playWrongSound() { if (!isMuted) { wrongSound.currentTime = 0; wrongSound.play().catch(e => {}); } }
 function playRocketSound() { if (!isMuted) { rocketSound.currentTime = 0; rocketSound.play().catch(e => {}); } }
 
-// FUNGSI GAME OVER CUSTOM
 function triggerPixelGameOver() {
-    if (!isMuted) {
-        meteorAmbience.pause();
-        gameOverSound.currentTime = 0;
-        gameOverSound.play().catch(e => {});
-    }
-    
-    const screen = document.getElementById('pixel-game-over');
-    const container = document.getElementById('explosion-container');
+    if (!isMuted) { meteorAmbience.pause(); gameOverSound.currentTime = 0; gameOverSound.play().catch(e => {}); }
+    const screen = document.getElementById('pixel-game-over'), container = document.getElementById('explosion-container');
     screen.style.display = 'flex';
-
-    // Membuat partikel ledakan kotak (pixel)
     for (let i = 0; i < 40; i++) {
-        const pixel = document.createElement('div');
-        pixel.className = 'explosion-pixel';
-        
-        // Random arah ledakan
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 100 + Math.random() * 200;
-        const tx = Math.cos(angle) * dist + 'px';
-        const ty = Math.sin(angle) * dist + 'px';
-        
-        pixel.style.setProperty('--tx', tx);
-        pixel.style.setProperty('--ty', ty);
-        
-        // Warna api acak (merah, oranye, kuning)
-        const colors = ['#ff0000', '#ff4500', '#ff8c00', '#ffd700'];
-        pixel.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        
-        container.appendChild(pixel);
-        // Hapus setelah animasi
-        setTimeout(() => pixel.remove(), 2000);
+        const pixel = document.createElement('div'); pixel.className = 'explosion-pixel';
+        const angle = Math.random() * Math.PI * 2, dist = 100 + Math.random() * 200;
+        pixel.style.setProperty('--tx', Math.cos(angle) * dist + 'px'); pixel.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+        const colors = ['#ff0000', '#ff4500', '#ff8c00', '#ffd700']; pixel.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        container.appendChild(pixel); setTimeout(() => pixel.remove(), 2000);
     }
-
     setTimeout(() => location.reload(), 4500);
 }
 
 function switchToMeteorMusic() { bgMusic.pause(); bgMusic.currentTime = 0; if (!isMuted) meteorAmbience.play().catch(e => {}); }
-
-function toggleMute() {
-    isMuted = !isMuted;
-    const btn = document.getElementById('mute-btn');
-    if(btn) btn.textContent = isMuted ? "SUARA: MATI" : "SUARA: AKTIF";
-    if (isMuted) { bgMusic.pause(); meteorAmbience.pause(); } 
-    else { if (isInitialized) meteorAmbience.play().catch(e => {}); else bgMusic.play().catch(e => {}); }
-}
+function toggleMute() { isMuted = !isMuted; const btn = document.getElementById('mute-btn'); if(btn) btn.textContent = isMuted ? "SUARA: MATI" : "SUARA: AKTIF"; if (isMuted) { bgMusic.pause(); meteorAmbience.pause(); } else { if (isInitialized) meteorAmbience.play().catch(e => {}); else bgMusic.play().catch(e => {}); } }
 
 const textureLoader = new THREE.TextureLoader();
 const meteorTexture = textureLoader.load('images/ceres.jpg');
@@ -94,20 +50,11 @@ function initProject(mode) {
     scene.add(new THREE.AmbientLight(0xffffff, 0.9), new THREE.PointLight(0xffffff, 1.5, 1000));
     createStars();
     if (mode === 'gallery') { spawnSun(); buildGallerySystem(); setupOrbitToggle(); } else { startNewWave(); }
-    window.addEventListener('click', onSceneClick);
-    animate();
+    window.addEventListener('click', onSceneClick); animate();
 }
 
 function createAtmosphere(size, color) {
-    return new THREE.Mesh(
-        new THREE.SphereGeometry(size * 1.12, 64, 64),
-        new THREE.ShaderMaterial({ 
-            vertexShader: `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`, 
-            fragmentShader: `varying vec3 vNormal; uniform vec3 glowColor; void main() { float intensity = pow(0.7 - dot(vNormal, vec3(0,0,1.0)), 6.0); gl_FragColor = vec4(glowColor, intensity); }`, 
-            uniforms: { glowColor: { value: new THREE.Color(color) } }, 
-            side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending 
-        })
-    );
+    return new THREE.Mesh(new THREE.SphereGeometry(size * 1.12, 64, 64), new THREE.ShaderMaterial({ vertexShader: `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`, fragmentShader: `varying vec3 vNormal; uniform vec3 glowColor; void main() { float intensity = pow(0.7 - dot(vNormal, vec3(0,0,1.0)), 6.0); gl_FragColor = vec4(glowColor, intensity); }`, uniforms: { glowColor: { value: new THREE.Color(color) } }, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending }));
 }
 
 function spawnSun() {
@@ -126,26 +73,21 @@ function buildGallerySystem() {
         mesh.add(createAtmosphere(data.size, data.glow));
         const orbitLine = new THREE.Mesh(new THREE.RingGeometry(data.orbit - 0.2, data.orbit + 0.2, 128), new THREE.MeshBasicMaterial({ color: 0x00d4ff, side: THREE.DoubleSide, transparent: true, opacity: 0.2 }));
         orbitLine.rotation.x = Math.PI / 2; scene.add(orbitLine); orbitLines.push(orbitLine);
-        const angle = Math.random() * Math.PI * 2;
-        mesh.position.set(Math.cos(angle) * data.orbit, 0, Math.sin(angle) * data.orbit);
-        scene.add(mesh);
-        planets.push({ mesh, data, rotSpeed: 0.01, orbitAngle: angle, answered: false });
+        const angle = Math.random() * Math.PI * 2; mesh.position.set(Math.cos(angle) * data.orbit, 0, Math.sin(angle) * data.orbit);
+        scene.add(mesh); planets.push({ mesh, data, rotSpeed: 0.01, orbitAngle: angle, answered: false });
     });
 }
 
 function startNewWave() {
     planets.forEach(p => scene.remove(p.mesh)); planets = []; planetsAnsweredInWave = 0;
-    const sectorTxt = document.getElementById('current-sector-text');
-    if(sectorTxt) sectorTxt.textContent = sectorIndex + 1;
+    const sectorTxt = document.getElementById('current-sector-text'); if(sectorTxt) sectorTxt.textContent = sectorIndex + 1;
     const count = Math.min(2 + sectorIndex, 8); 
     for (let i = 1; i <= count; i++) {
         const data = planetData[i];
         const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.size * 4.5, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), shininess: 25 }));
         mesh.add(createAtmosphere(data.size * 4.5, data.glow));
-        const angle = ((i-1) / count) * Math.PI * 2;
-        mesh.position.set(Math.cos(angle) * 120, Math.sin(angle) * 120, 0);
-        scene.add(mesh);
-        planets.push({ mesh, data, rotSpeed: 0.015, answered: false });
+        const angle = ((i-1) / count) * Math.PI * 2; mesh.position.set(Math.cos(angle) * 120, Math.sin(angle) * 120, 0);
+        scene.add(mesh); planets.push({ mesh, data, rotSpeed: 0.015, answered: false });
     }
 }
 
@@ -154,29 +96,21 @@ function updateMeteors() {
         const geo = new THREE.DodecahedronGeometry(1.5 + Math.random() * 2, 0); 
         const mat = new THREE.MeshPhongMaterial({ map: meteorTexture, color: 0xffffff, shininess: 2, flatShading: true });
         const m = new THREE.Mesh(geo, mat);
-        m.position.set((Math.random() - 0.5) * 600, (Math.random() - 0.5) * 400, (Math.random() - 0.5) * 600);
-        if (m.position.length() < 150) m.position.multiplyScalar(2);
+        m.position.set((Math.random()-0.5)*600, (Math.random()-0.5)*400, (Math.random()-0.5)*600);
         const speed = 1.5 + Math.random() * 2;
-        m.userData = { v: new THREE.Vector3((Math.random() - 0.5) * speed, (Math.random() - 0.5) * speed, (Math.random() - 0.5) * speed), rv: (Math.random() - 0.5) * 0.04 };
+        m.userData = { v: new THREE.Vector3((Math.random()-0.5)*speed, (Math.random()-0.5)*speed, (Math.random()-0.5)*speed), rv: (Math.random()-0.5)*0.04 };
         scene.add(m); meteors.push(m);
     }
-    for(let i = meteors.length - 1; i >= 0; i--) { 
-        meteors[i].position.add(meteors[i].userData.v); 
-        meteors[i].rotation.x += meteors[i].userData.rv; meteors[i].rotation.y += meteors[i].userData.rv;
+    for(let i=meteors.length-1; i>=0; i--) { 
+        meteors[i].position.add(meteors[i].userData.v); meteors[i].rotation.x += meteors[i].userData.rv; meteors[i].rotation.y += meteors[i].userData.rv;
         if(meteors[i].position.length() > 800) { scene.remove(meteors[i]); meteors.splice(i, 1); } 
     }
 }
 
 function triggerRocket(message, callback) {
-    playRocketSound();
-    const rocket = document.getElementById('rocket-container');
-    document.getElementById('smoke-text').textContent = message;
-    rocket.style.transition = 'none'; rocket.style.left = '-150vw'; rocket.style.opacity = '1';
-    rocket.offsetHeight; 
-    setTimeout(() => {
-        rocket.style.transition = '3.5s cubic-bezier(0.45, 0.05, 0.55, 0.95)';
-        rocket.style.left = '150vw'; setTimeout(callback, 1750);
-    }, 100);
+    playRocketSound(); const rocket = document.getElementById('rocket-container'); document.getElementById('smoke-text').textContent = message;
+    rocket.style.transition = 'none'; rocket.style.left = '-150vw'; rocket.style.opacity = '1'; rocket.offsetHeight; 
+    setTimeout(() => { rocket.style.transition = '3.5s cubic-bezier(0.45, 0.05, 0.55, 0.95)'; rocket.style.left = '150vw'; setTimeout(callback, 1750); }, 100);
     setTimeout(() => { rocket.style.opacity = '0'; }, 3600);
 }
 
@@ -186,8 +120,7 @@ function animate() {
     planets.forEach(p => { 
         p.mesh.rotation.y += p.rotSpeed; 
         if (!isZooming && currentMode === 'gallery' && isOrbiting) {
-            p.orbitAngle += p.data.orbitSpeed;
-            p.mesh.position.set(Math.cos(p.orbitAngle) * p.data.orbit, 0, Math.sin(p.orbitAngle) * p.data.orbit);
+            p.orbitAngle += p.data.orbitSpeed; p.mesh.position.set(Math.cos(p.orbitAngle) * p.data.orbit, 0, Math.sin(p.orbitAngle) * p.data.orbit);
         }
     });
     updateMeteors();
@@ -195,13 +128,17 @@ function animate() {
         camera.position.x += (Math.random() - 0.5) * shakeIntensity; camera.position.y += (Math.random() - 0.5) * shakeIntensity;
         shakeIntensity *= 0.92; if (shakeIntensity < 0.05) shakeIntensity = 0;
     }
+
+    // --- LOGIKA ZOOM DIPERBAIKI ---
     if (isZooming && selectedPlanet) {
         controls.enabled = false;
         const pPos = selectedPlanet.mesh.position.clone();
-        let zoom = currentMode === 'game' ? 25 : selectedPlanet.data.size * 4.2;
-        camera.position.lerp(new THREE.Vector3(pPos.x - 15, pPos.y, pPos.z + zoom), 0.08);
-        camera.lookAt(new THREE.Vector3(pPos.x - 15, pPos.y, pPos.z));
+        // Offset agar kamera tidak menabrak planet, tapi tetap fokus ke planet
+        let zoomDist = currentMode === 'game' ? 25 : selectedPlanet.data.size * 5;
+        camera.position.lerp(new THREE.Vector3(pPos.x, pPos.y + 2, pPos.z + zoomDist), 0.08);
+        camera.lookAt(pPos); // Fokus tepat ke planet
     } else { if(controls) { controls.enabled = true; controls.update(); } }
+    
     if(renderer && scene && camera) renderer.render(scene, camera);
 }
 
@@ -238,44 +175,42 @@ function showUI(type) {
         document.getElementById('planet-facts').innerHTML = selectedPlanet.data.facts.map(f => `<p>► ${f}</p>`).join('');
         document.getElementById('planet-info-panel').style.display = 'block';
         const b = document.getElementById('close-gallery-info'); b.style.display = 'block';
+        
+        // --- LOGIKA TUTUP INFO DIPERBAIKI ---
         b.onclick = () => { 
-            playClickSound(); isZooming = false; document.getElementById('planet-info-panel').style.display = 'none'; 
+            playClickSound(); 
+            isZooming = false; 
+            document.getElementById('planet-info-panel').style.display = 'none'; 
             document.getElementById('planet-name-display').textContent = "PILIH PLANET"; 
-            if(sunMesh) sunMesh.visible = true; orbitLines.forEach(l => l.visible = true); planets.forEach(p => p.mesh.visible = true);
+            
+            // Memunculkan kembali elemen tata surya
+            if(sunMesh) sunMesh.visible = true; 
+            orbitLines.forEach(l => l.visible = true); 
+            planets.forEach(p => p.mesh.visible = true);
+            
+            selectedPlanet = null; // Reset pemilihan agar kamera bebas lagi
         };
     }
 }
 
 function verifyAnswer(idx, btn, correct) {
-    const allButtons = document.querySelectorAll('.option-btn');
-    allButtons.forEach(b => b.style.pointerEvents = 'none');
+    const allButtons = document.querySelectorAll('.option-btn'); allButtons.forEach(b => b.style.pointerEvents = 'none');
     if (idx === correct) {
         playCorrectSound(); score += 10; btn.style.background = "linear-gradient(180deg, #00ff88 0%, #009955 100%)";
         selectedPlanet.answered = true; planetsAnsweredInWave++;
         if (planetsAnsweredInWave === Math.min(2 + sectorIndex, 8)) {
             sectorIndex++;
-            setTimeout(() => {
-                isZooming = false; document.getElementById('question-panel').style.display = 'none';
-                if (sectorIndex >= 10) { customSwal('MASTER!', 'Selesai!', 'success').then(() => location.reload()); }
-                else { triggerRocket(`SECTOR ${sectorIndex} BERHASIL!`, startNewWave); }
-            }, 1000);
-            return;
+            setTimeout(() => { isZooming = false; document.getElementById('question-panel').style.display = 'none'; if (sectorIndex >= 10) { customSwal('MASTER!', 'Selesai!', 'success').then(() => location.reload()); } else { triggerRocket(`SECTOR ${sectorIndex} BERHASIL!`, startNewWave); } }, 1000); return;
         }
     } else {
-        lives--; shakeIntensity = 10.0; btn.classList.add('shake-anim');
-        btn.style.background = "linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%)";
+        lives--; shakeIntensity = 10.0; btn.classList.add('shake-anim'); btn.style.background = "linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%)";
         document.getElementById('lives-counter').textContent = `x${lives}`;
-        if (lives <= 0) { triggerPixelGameOver(); return; }
-        else { playWrongSound(); }
+        if (lives <= 0) { triggerPixelGameOver(); return; } else { playWrongSound(); }
     }
     document.getElementById('score').textContent = score;
     setTimeout(() => { isZooming = false; document.getElementById('question-panel').style.display = 'none'; document.getElementById('planet-name-display').textContent = "PILIH PLANET"; }, 1200);
 }
 
-function setupOrbitToggle() {
-    const btn = document.getElementById('orbit-toggle-btn');
-    if(btn) btn.onclick = () => { playClickSound(); isOrbiting = !isOrbiting; btn.textContent = isOrbiting ? "ORBIT: JALAN" : "ORBIT: BERHENTI"; btn.style.background = isOrbiting ? "linear-gradient(180deg, #00ff88 0%, #009955 100%)" : "linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%)"; };
-}
-
+function setupOrbitToggle() { const btn = document.getElementById('orbit-toggle-btn'); if(btn) btn.onclick = () => { playClickSound(); isOrbiting = !isOrbiting; btn.textContent = isOrbiting ? "ORBIT: JALAN" : "ORBIT: BERHENTI"; btn.style.background = isOrbiting ? "linear-gradient(180deg, #00ff88 0%, #009955 100%)" : "linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%)"; }; }
 function createStars() { const geo = new THREE.BufferGeometry(); const pos = []; for(let i=0; i<4000; i++) pos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 1.5}))); }
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });

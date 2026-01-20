@@ -42,13 +42,20 @@ const planetData = [
         ] 
     },
     { 
-        name: 'Saturnus', texture: '/images/saturn.jpg', size: 3.2, glow: 0xEAD6B0, orbit: 85, orbitSpeed: 0.002, 
-        facts: ['Sistem cincin es paling megah', 'Bulan Titan memiliki atmosfer', 'Kerapatan lebih rendah dari air', 'Terdiri dari Hidrogen dan Helium'], 
-        questions: [
-            { q: 'Planet yang terkenal dengan cincinnya adalah?', options: ['Jupiter', 'Saturnus', 'Uranus'], correct: 1 },
-            { q: 'Apa bulan terbesar milik Saturnus?', options: ['Titan', 'Europa', 'Phobos'], correct: 0 }
-        ] 
-    },
+    name: 'Saturnus', 
+    texture: '/images/saturn.jpg', 
+    size: 3.2, 
+    glow: 0xEAD6B0, 
+    orbit: 85, 
+    orbitSpeed: 0.002, 
+    hasRing: true, 
+    ringTexture: '/images/saturn_ring.png', 
+    facts: ['Sistem cincin es paling megah', 'Bulan Titan memiliki atmosfer', 'Kerapatan lebih rendah dari air', 'Terdiri dari Hidrogen dan Helium'], 
+    questions: [
+        { q: 'Planet yang terkenal dengan cincinnya adalah?', options: ['Jupiter', 'Saturnus', 'Uranus'], correct: 1 },
+        { q: 'Apa bulan terbesar milik Saturnus?', options: ['Titan', 'Europa', 'Phobos'], correct: 0 }
+    ] 
+},
     { 
         name: 'Uranus', texture: '/images/uranus.jpg', size: 2.4, glow: 0xB2E2E2, orbit: 105, orbitSpeed: 0.0015, 
         facts: ['Raksasa es biru muda', 'Rotasi miring hingga 98 derajat', 'Atmosfer mengandung metana', 'Ditemukan oleh William Herschel'], 
