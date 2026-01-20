@@ -68,8 +68,51 @@ function spawnSun() {
 function buildGallerySystem() {
     planets = []; orbitLines = [];
     planetData.forEach((data, index) => {
-        if (index === 0) return;
-        const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.size, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), shininess: 25 }));
+        if (index === 0) return; // Skip Matahari
+
+        // 1. Buat Body Planet
+        const mesh = new THREE.Mesh(
+            new THREE.SphereGeometry(data.size, 64, 64), 
+            new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), shininess: 25 })
+        );
+
+        // --- TAMBAHAN KHUSUS SATURNUS ---
+        if (data.name === 'Saturnus') {
+        // 1. Load Tekstur Cincin yang Realistik (Gunakan file PNG transparan)
+        const ringTexture = textureLoader.load('images/saturn_ring.png');
+        
+        // 2. Gunakan RingBufferGeometry untuk performa lebih ringan & presisi
+        // Inner radius (1.4x), Outer radius (2.4x)
+        const ringGeo = new THREE.RingBufferGeometry(data.size * 1.4, data.size * 2.4, 128);
+        
+        // 3. Atur UV Mapping agar tekstur melingkar sempurna
+        const pos = ringGeo.attributes.position;
+        const v3 = new THREE.Vector3();
+        for (let i = 0; i < pos.count; i++) {
+            v3.fromBufferAttribute(pos, i);
+            ringGeo.attributes.uv.setXY(i, v3.length() < data.size * 1.9 ? 0 : 1, 1);
+        }
+
+        // 4. Material dengan efek transparan dan pencahayaan lembut
+        const ringMat = new THREE.MeshPhongMaterial({
+            map: ringTexture,
+            side: THREE.DoubleSide, // Agar terlihat dari bawah dan atas
+            transparent: true,
+            opacity: 0.8,
+            shininess: 0,
+            blending: THREE.NormalBlending
+        });
+
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+
+        // 5. Kemiringan khas Saturnus (sekitar 27 derajat)
+        ringMesh.rotation.x = Math.PI / 2.2;
+        
+        // Tambahkan ke planet utama
+        mesh.add(ringMesh);
+        }
+        // -------------------------------
+
         mesh.add(createAtmosphere(data.size, data.glow));
         const orbitLine = new THREE.Mesh(new THREE.RingGeometry(data.orbit - 0.2, data.orbit + 0.2, 128), new THREE.MeshBasicMaterial({ color: 0x00d4ff, side: THREE.DoubleSide, transparent: true, opacity: 0.2 }));
         orbitLine.rotation.x = Math.PI / 2; scene.add(orbitLine); orbitLines.push(orbitLine);
@@ -85,6 +128,17 @@ function startNewWave() {
     for (let i = 1; i <= count; i++) {
         const data = planetData[i];
         const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.size * 4.5, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), shininess: 25 }));
+        
+        // --- TAMBAHAN CINCIN DI MODE GAME ---
+        if (data.name === 'Saturnus') {
+            const ringGeo = new THREE.RingGeometry(data.size * 4.5 * 1.4, data.size * 4.5 * 2.2, 64);
+            const ringMat = new THREE.MeshPhongMaterial({ color: 0xEAD6B0, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.rotation.x = Math.PI / 2.2;
+            mesh.add(ringMesh);
+        }
+        // ------------------------------------
+
         mesh.add(createAtmosphere(data.size * 4.5, data.glow));
         const angle = ((i-1) / count) * Math.PI * 2; mesh.position.set(Math.cos(angle) * 120, Math.sin(angle) * 120, 0);
         scene.add(mesh); planets.push({ mesh, data, rotSpeed: 0.015, answered: false });
