@@ -8,6 +8,48 @@ body, html {
     user-select: none; 
 }
 
+/* --- GAME OVER PIXEL OVERLAY --- */
+/* Muncul saat energi habis menggantikan SweetAlert */
+#pixel-game-over {
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9); 
+    display: none; /* Diaktifkan via JS */
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center; 
+    z-index: 10000;
+}
+
+.pixel-text {
+    font-family: 'Press Start 2P', cursive;
+    color: #ff0000; 
+    font-size: 60px; 
+    text-shadow: 6px 6px 0px #8b0000;
+    margin-top: 30px; 
+    animation: blinkText 0.6s infinite;
+}
+
+/* Kontainer Partikel Ledakan Pixel */
+#explosion-container { 
+    position: relative; 
+    width: 10px; 
+    height: 10px; 
+}
+
+.explosion-pixel {
+    position: absolute; 
+    width: 15px; 
+    height: 15px;
+    background: #ff4500; 
+    top: 0; 
+    left: 0;
+    animation: explodePixel 1.5s ease-out forwards;
+}
+
 /* --- MAIN MENU --- */
 #main-menu { 
     position: fixed; 
@@ -33,6 +75,7 @@ body, html {
     -webkit-background-clip: text; 
     -webkit-text-fill-color: transparent; 
     filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.7)); 
+    animation: floatingTitle 3s ease-in-out infinite;
 }
 
 .sub-title { 
@@ -64,8 +107,19 @@ body, html {
     border: 3px solid #fffbb0; 
     background: linear-gradient(180deg, #ffdb4d 0%, #ff9a00 100%); 
     box-shadow: 0 8px 0px #b86600; 
-    transition: 0.2s; 
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     text-transform: uppercase; 
+    animation: btnPulse 2s infinite;
+}
+
+.menu-btn:hover, .option-btn:hover, .back-btn:hover, #orbit-toggle-btn:hover {
+    transform: scale(1.05) translateY(-5px);
+    filter: brightness(1.1);
+}
+
+.menu-btn:active, .option-btn:active, .back-btn:active, #orbit-toggle-btn:active {
+    transform: scale(0.95) translateY(2px);
+    box-shadow: 0 4px 0px #b86600;
 }
 
 /* --- UI CONTROLS --- */
@@ -84,6 +138,7 @@ body, html {
     z-index: 2000; 
     display: none; 
     text-transform: uppercase; 
+    transition: 0.2s;
 }
 
 #orbit-toggle-btn { 
@@ -101,6 +156,7 @@ body, html {
     display: none; 
     box-shadow: 0 6px 0px #005533; 
     background: linear-gradient(180deg, #00ff88 0%, #009955 100%); 
+    transition: 0.2s;
 }
 
 /* --- GLASS PANELS --- */
@@ -165,11 +221,32 @@ body, html {
     animation: shake 0.4s both; 
 }
 
+/* --- ANIMATION KEYFRAMES --- */
 @keyframes shake {
     10%, 90% { transform: translate3d(-4px, 0, 0); }
     20%, 80% { transform: translate3d(8px, 0, 0); }
     30%, 50%, 70% { transform: translate3d(-12px, 0, 0); }
     40%, 60% { transform: translate3d(12px, 0, 0); }
+}
+
+@keyframes floatingTitle {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(1deg); }
+}
+
+@keyframes btnPulse {
+    0%, 100% { box-shadow: 0 8px 0px #b86600, 0 0 0px rgba(255, 219, 77, 0); }
+    50% { box-shadow: 0 8px 15px #ffdb4d; }
+}
+
+@keyframes explodePixel {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(180deg); opacity: 0; }
+}
+
+@keyframes blinkText {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.05); }
 }
 
 /* --- SETTINGS GEAR --- */
@@ -193,7 +270,10 @@ body, html {
     display: flex; 
     align-items: center; 
     justify-content: center; 
+    transition: 0.3s;
 }
+
+.gear-btn:hover { transform: rotate(90deg) scale(1.1); }
 
 .config-panel { 
     position: absolute; 

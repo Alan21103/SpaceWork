@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Planetaria: Space Odyssey</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Orbitron:wght@400;700&family=Exo+2:wght@300;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Orbitron:wght@400;700&family=Exo+2:wght@300;600&family=Press+Start+2P&display=swap"
         rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -16,6 +16,11 @@
 
 <body>
     <div id="canvas-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;"></div>
+
+    <div id="pixel-game-over">
+        <div id="explosion-container"></div>
+        <h1 class="pixel-text">GAMEOVER</h1>
+    </div>
 
     <div id="rocket-container">
         <div id="smoke-trail">
@@ -32,16 +37,18 @@
                 style="color: #ff4500; display: none;">KELUAR GAME</button>
         </div>
     </div>
+
     <div id="main-menu">
         <h1 class="main-title">PLANETARIA</h1>
         <div class="sub-title">Jelajah Dunia Planet</div>
         <div class="menu-container">
-            <button id="play-btn" class="menu-btn">Mulai Tantangan</button>
+            <button id="play-btn" class="menu-btn">Mulai Jelajah</button>
             <button id="gallery-btn" class="menu-btn"
                 style="background: linear-gradient(180deg, #00d4ff 0%, #0055ff 100%); border-color: #b0f4ff; box-shadow: 0 8px 0px #003399;">Galeri
                 Planet</button>
         </div>
     </div>
+
     <div id="game-ui">
         <button id="back-to-menu" class="back-btn" onclick="location.reload()">KEMBALI</button>
         <button id="orbit-toggle-btn">ORBIT: JALAN</button>
@@ -71,18 +78,44 @@
                 INFO</button>
         </div>
     </div>
+
     <script src="data.js"></script>
     <script src="sketch.js"></script>
     <script>
-        const mainMenu = document.getElementById('main-menu'), hud = document.getElementById('hud'), backBtn = document.getElementById('back-to-menu'), orbitBtn = document.getElementById('orbit-toggle-btn'), exitBtn = document.getElementById('exit-btn');
-        document.getElementById('play-btn').onclick = () => { mainMenu.style.display = 'none'; hud.style.display = 'block'; document.getElementById('sector-display').style.display = 'block'; document.getElementById('score-info').style.display = 'block'; document.getElementById('energy-info').style.display = 'block'; exitBtn.style.display = 'block'; backBtn.style.display = 'none'; initProject('game'); };
-        document.getElementById('gallery-btn').onclick = () => { mainMenu.style.display = 'none'; hud.style.display = 'block'; document.getElementById('sector-display').style.display = 'none'; document.getElementById('score-info').style.display = 'none'; document.getElementById('energy-info').style.display = 'none'; exitBtn.style.display = 'none'; backBtn.style.display = 'block'; orbitBtn.style.display = 'block'; document.getElementById('planet-name-display').textContent = "PILIH PLANET"; initProject('gallery'); };
-        function togglePanel(id, e) { e.stopPropagation(); const p = document.getElementById(id); p.style.display = p.style.display === 'flex' ? 'none' : 'flex'; }
+        const mainMenu = document.getElementById('main-menu'), 
+              hud = document.getElementById('hud'), 
+              backBtn = document.getElementById('back-to-menu'), 
+              orbitBtn = document.getElementById('orbit-toggle-btn'), 
+              exitBtn = document.getElementById('exit-btn');
+        
+        document.getElementById('play-btn').onclick = () => { 
+            mainMenu.style.display = 'none'; 
+            hud.style.display = 'block'; 
+            document.getElementById('sector-display').style.display = 'block'; 
+            document.getElementById('score-info').style.display = 'block'; 
+            document.getElementById('energy-info').style.display = 'block'; 
+            exitBtn.style.display = 'block'; 
+            backBtn.style.display = 'none'; 
+            playClickSound(); switchToMeteorMusic(); initProject('game'); 
+        };
+
+        document.getElementById('gallery-btn').onclick = () => { 
+            mainMenu.style.display = 'none'; 
+            hud.style.display = 'block'; 
+            document.getElementById('sector-display').style.display = 'none'; 
+            document.getElementById('score-info').style.display = 'none'; 
+            document.getElementById('energy-info').style.display = 'none'; 
+            exitBtn.style.display = 'none'; 
+            backBtn.style.display = 'block'; 
+            orbitBtn.style.display = 'block'; 
+            document.getElementById('planet-name-display').textContent = "PILIH PLANET"; 
+            playClickSound(); switchToMeteorMusic(); initProject('gallery'); 
+        };
+
+        function togglePanel(id, e) { playClickSound(); e.stopPropagation(); const p = document.getElementById(id); p.style.display = p.style.display === 'flex' ? 'none' : 'flex'; }
         window.onclick = () => document.getElementById('config-menu').style.display = 'none';
         function customSwal(title, text, icon, showCancel = false) { return Swal.fire({ title, text, icon, showCancelButton: showCancel, background: 'rgba(10, 10, 30, 0.95)', color: '#fff', confirmButtonText: 'OK', cancelButtonText: 'BATAL', customClass: { popup: 'swal-popup', title: 'swal-title', htmlContainer: 'swal-text', confirmButton: 'swal-button', cancelButton: 'swal-button' } }); }
-        function confirmExit() { customSwal('KELUAR GAME?', 'Kembali ke markas utama.', 'warning', true).then((r) => { if (r.isConfirmed) location.reload(); }); }
-        let isMuted = false; function toggleMute() { isMuted = !isMuted; document.getElementById('mute-btn').textContent = isMuted ? "SUARA: MATI" : "SUARA: AKTIF"; }
+        function confirmExit() { playClickSound(); customSwal('KELUAR GAME?', 'Kembali ke markas utama.', 'warning', true).then((r) => { if (r.isConfirmed) location.reload(); }); }
     </script>
 </body>
-
 </html>

@@ -3,11 +3,81 @@ let planets = [], stars = [], meteors = [], sunMesh = null, orbitLines = [];
 let currentMode = 'game', isInitialized = false, isOrbiting = true;
 let selectedPlanet = null, isZooming = false;
 let score = 0, lives = 3, sectorIndex = 0, planetsAnsweredInWave = 0, shakeIntensity = 0;
+let isMuted = false;
+
+// --- AUDIO SETUP ---
+const bgMusic = new Audio('assets/bgm.mp3'); 
+bgMusic.loop = true;
+bgMusic.volume = 0.5;
+
+const meteorAmbience = new Audio('assets/meteor.mp3'); 
+meteorAmbience.loop = true;
+meteorAmbience.volume = 0.4;
+
+const clickSound = new Audio('assets/click.mp3');
+const correctSound = new Audio('assets/correct.mp3');
+const wrongSound = new Audio('assets/wrong.mp3');
+const rocketSound = new Audio('assets/rocket.mp3');
+const gameOverSound = new Audio('assets/over.mp3');
+gameOverSound.volume = 0.7;
+
+bgMusic.play().catch(e => console.log("Menunggu interaksi."));
+
+function playClickSound() { if (!isMuted) { clickSound.currentTime = 0; clickSound.play().catch(e => {}); } }
+function playCorrectSound() { if (!isMuted) { correctSound.currentTime = 0; correctSound.play().catch(e => {}); } }
+function playWrongSound() { if (!isMuted) { wrongSound.currentTime = 0; wrongSound.play().catch(e => {}); } }
+function playRocketSound() { if (!isMuted) { rocketSound.currentTime = 0; rocketSound.play().catch(e => {}); } }
+
+// FUNGSI GAME OVER CUSTOM
+function triggerPixelGameOver() {
+    if (!isMuted) {
+        meteorAmbience.pause();
+        gameOverSound.currentTime = 0;
+        gameOverSound.play().catch(e => {});
+    }
+    
+    const screen = document.getElementById('pixel-game-over');
+    const container = document.getElementById('explosion-container');
+    screen.style.display = 'flex';
+
+    // Membuat partikel ledakan kotak (pixel)
+    for (let i = 0; i < 40; i++) {
+        const pixel = document.createElement('div');
+        pixel.className = 'explosion-pixel';
+        
+        // Random arah ledakan
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 100 + Math.random() * 200;
+        const tx = Math.cos(angle) * dist + 'px';
+        const ty = Math.sin(angle) * dist + 'px';
+        
+        pixel.style.setProperty('--tx', tx);
+        pixel.style.setProperty('--ty', ty);
+        
+        // Warna api acak (merah, oranye, kuning)
+        const colors = ['#ff0000', '#ff4500', '#ff8c00', '#ffd700'];
+        pixel.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        container.appendChild(pixel);
+        // Hapus setelah animasi
+        setTimeout(() => pixel.remove(), 2000);
+    }
+
+    setTimeout(() => location.reload(), 4500);
+}
+
+function switchToMeteorMusic() { bgMusic.pause(); bgMusic.currentTime = 0; if (!isMuted) meteorAmbience.play().catch(e => {}); }
+
+function toggleMute() {
+    isMuted = !isMuted;
+    const btn = document.getElementById('mute-btn');
+    if(btn) btn.textContent = isMuted ? "SUARA: MATI" : "SUARA: AKTIF";
+    if (isMuted) { bgMusic.pause(); meteorAmbience.pause(); } 
+    else { if (isInitialized) meteorAmbience.play().catch(e => {}); else bgMusic.play().catch(e => {}); }
+}
 
 const textureLoader = new THREE.TextureLoader();
-
-const atmosphereVertex = `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-const atmosphereFragment = `varying vec3 vNormal; uniform vec3 glowColor; void main() { float intensity = pow(0.7 - dot(vNormal, vec3(0,0,1.0)), 6.0); gl_FragColor = vec4(glowColor, intensity); }`;
+const meteorTexture = textureLoader.load('images/ceres.jpg');
 
 function initProject(mode) {
     if (isInitialized) return;
@@ -21,7 +91,7 @@ function initProject(mode) {
     document.getElementById('canvas-container').appendChild(renderer.domElement);
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8), new THREE.PointLight(0xffffff, 2, 1000));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.9), new THREE.PointLight(0xffffff, 1.5, 1000));
     createStars();
     if (mode === 'gallery') { spawnSun(); buildGallerySystem(); setupOrbitToggle(); } else { startNewWave(); }
     window.addEventListener('click', onSceneClick);
@@ -31,14 +101,21 @@ function initProject(mode) {
 function createAtmosphere(size, color) {
     return new THREE.Mesh(
         new THREE.SphereGeometry(size * 1.12, 64, 64),
-        new THREE.ShaderMaterial({ vertexShader: atmosphereVertex, fragmentShader: atmosphereFragment, uniforms: { glowColor: { value: new THREE.Color(color) } }, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending })
+        new THREE.ShaderMaterial({ 
+            vertexShader: `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`, 
+            fragmentShader: `varying vec3 vNormal; uniform vec3 glowColor; void main() { float intensity = pow(0.7 - dot(vNormal, vec3(0,0,1.0)), 6.0); gl_FragColor = vec4(glowColor, intensity); }`, 
+            uniforms: { glowColor: { value: new THREE.Color(color) } }, 
+            side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending 
+        })
     );
 }
 
 function spawnSun() {
-    const data = planetData[0];
-    sunMesh = new THREE.Mesh(new THREE.SphereGeometry(data.size, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), emissive: 0xffaa00, emissiveIntensity: 0.5 }));
-    sunMesh.add(createAtmosphere(data.size, data.glow)); scene.add(sunMesh);
+    if(typeof planetData !== 'undefined') {
+        const data = planetData[0];
+        sunMesh = new THREE.Mesh(new THREE.SphereGeometry(data.size, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load(data.texture), emissive: 0xffaa00, emissiveIntensity: 0.5 }));
+        sunMesh.add(createAtmosphere(data.size, data.glow)); scene.add(sunMesh);
+    }
 }
 
 function buildGallerySystem() {
@@ -58,7 +135,8 @@ function buildGallerySystem() {
 
 function startNewWave() {
     planets.forEach(p => scene.remove(p.mesh)); planets = []; planetsAnsweredInWave = 0;
-    document.getElementById('current-sector-text').textContent = sectorIndex + 1;
+    const sectorTxt = document.getElementById('current-sector-text');
+    if(sectorTxt) sectorTxt.textContent = sectorIndex + 1;
     const count = Math.min(2 + sectorIndex, 8); 
     for (let i = 1; i <= count; i++) {
         const data = planetData[i];
@@ -71,38 +149,35 @@ function startNewWave() {
     }
 }
 
-// --- LOGIKA METEOR ---
 function updateMeteors() {
-    if (Math.random() < 0.04) {
-        const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5 + Math.random(), 0), new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true }));
-        m.position.set(300 * (Math.random() > 0.5 ? 1 : -1), (Math.random()-0.5)*200, (Math.random()-0.5)*200);
-        m.userData = { v: new THREE.Vector3(-Math.sign(m.position.x) * (1.5 + Math.random()), (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5) };
+    if (Math.random() < 0.05) {
+        const geo = new THREE.DodecahedronGeometry(1.5 + Math.random() * 2, 0); 
+        const mat = new THREE.MeshPhongMaterial({ map: meteorTexture, color: 0xffffff, shininess: 2, flatShading: true });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set((Math.random() - 0.5) * 600, (Math.random() - 0.5) * 400, (Math.random() - 0.5) * 600);
+        if (m.position.length() < 150) m.position.multiplyScalar(2);
+        const speed = 1.5 + Math.random() * 2;
+        m.userData = { v: new THREE.Vector3((Math.random() - 0.5) * speed, (Math.random() - 0.5) * speed, (Math.random() - 0.5) * speed), rv: (Math.random() - 0.5) * 0.04 };
         scene.add(m); meteors.push(m);
     }
-    for(let i=meteors.length-1; i>=0; i--) { 
+    for(let i = meteors.length - 1; i >= 0; i--) { 
         meteors[i].position.add(meteors[i].userData.v); 
-        meteors[i].rotation.x += 0.02;
-        if(meteors[i].position.length() > 600) { scene.remove(meteors[i]); meteors.splice(i, 1); } 
+        meteors[i].rotation.x += meteors[i].userData.rv; meteors[i].rotation.y += meteors[i].userData.rv;
+        if(meteors[i].position.length() > 800) { scene.remove(meteors[i]); meteors.splice(i, 1); } 
     }
 }
 
 function triggerRocket(message, callback) {
+    playRocketSound();
     const rocket = document.getElementById('rocket-container');
-    const smokeText = document.getElementById('smoke-text');
-    smokeText.textContent = message;
-    rocket.style.transition = 'none';
-    rocket.style.left = '-150vw'; 
-    rocket.style.opacity = '1';
+    document.getElementById('smoke-text').textContent = message;
+    rocket.style.transition = 'none'; rocket.style.left = '-150vw'; rocket.style.opacity = '1';
     rocket.offsetHeight; 
     setTimeout(() => {
         rocket.style.transition = '3.5s cubic-bezier(0.45, 0.05, 0.55, 0.95)';
-        rocket.style.left = '150vw';
-        setTimeout(callback, 1750);
+        rocket.style.left = '150vw'; setTimeout(callback, 1750);
     }, 100);
-    setTimeout(() => {
-        rocket.style.opacity = '0';
-        setTimeout(() => { rocket.style.transition = 'none'; rocket.style.left = '-150vw'; }, 500);
-    }, 3600);
+    setTimeout(() => { rocket.style.opacity = '0'; }, 3600);
 }
 
 function animate() {
@@ -117,20 +192,17 @@ function animate() {
     });
     updateMeteors();
     if (shakeIntensity > 0) {
-        camera.position.x += (Math.random() - 0.5) * shakeIntensity;
-        camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+        camera.position.x += (Math.random() - 0.5) * shakeIntensity; camera.position.y += (Math.random() - 0.5) * shakeIntensity;
         shakeIntensity *= 0.92; if (shakeIntensity < 0.05) shakeIntensity = 0;
     }
     if (isZooming && selectedPlanet) {
         controls.enabled = false;
         const pPos = selectedPlanet.mesh.position.clone();
-        let camOffset = currentMode === 'game' ? -15 : 12;
-        let lookAtOffset = currentMode === 'game' ? -15 : 3;
         let zoom = currentMode === 'game' ? 25 : selectedPlanet.data.size * 4.2;
-        camera.position.lerp(new THREE.Vector3(pPos.x + camOffset, pPos.y, pPos.z + zoom), 0.08);
-        camera.lookAt(new THREE.Vector3(pPos.x + lookAtOffset, pPos.y, pPos.z));
-    } else { controls.enabled = true; controls.update(); }
-    renderer.render(scene, camera);
+        camera.position.lerp(new THREE.Vector3(pPos.x - 15, pPos.y, pPos.z + zoom), 0.08);
+        camera.lookAt(new THREE.Vector3(pPos.x - 15, pPos.y, pPos.z));
+    } else { if(controls) { controls.enabled = true; controls.update(); } }
+    if(renderer && scene && camera) renderer.render(scene, camera);
 }
 
 function onSceneClick(e) {
@@ -139,13 +211,14 @@ function onSceneClick(e) {
     raycaster = new THREE.Raycaster(); raycaster.setFromCamera(mouse, camera);
     const hits = raycaster.intersectObjects(planets.map(p => p.mesh), true);
     if (hits.length > 0) {
+        playClickSound();
         let obj = hits[0].object; while(obj.parent && !planets.find(p => p.mesh === obj)) obj = obj.parent;
         selectedPlanet = planets.find(p => p.mesh === obj);
         if (selectedPlanet) {
             if (currentMode === 'game' && selectedPlanet.answered) return;
             isZooming = true;
             if (currentMode === 'gallery') {
-                sunMesh.visible = false; orbitLines.forEach(l => l.visible = false);
+                if(sunMesh) sunMesh.visible = false; orbitLines.forEach(l => l.visible = false);
                 planets.forEach(p => { if (p !== selectedPlanet) p.mesh.visible = false; });
             }
             showUI(currentMode);
@@ -156,8 +229,7 @@ function onSceneClick(e) {
 function showUI(type) {
     document.getElementById('planet-name-display').textContent = selectedPlanet.data.name.toUpperCase();
     if (type === 'game') {
-        const qIdx = sectorIndex < 4 ? 0 : 1;
-        const quest = selectedPlanet.data.questions[qIdx] || selectedPlanet.data.questions[0];
+        const quest = selectedPlanet.data.questions[sectorIndex < 4 ? 0 : 1] || selectedPlanet.data.questions[0];
         document.getElementById('question-text').textContent = quest.q;
         const opt = document.getElementById('options-container'); opt.innerHTML = '';
         quest.options.forEach((o, i) => { const b = document.createElement('button'); b.className = 'option-btn'; b.textContent = o; b.onclick = () => verifyAnswer(i, b, quest.correct); opt.appendChild(b); });
@@ -167,9 +239,9 @@ function showUI(type) {
         document.getElementById('planet-info-panel').style.display = 'block';
         const b = document.getElementById('close-gallery-info'); b.style.display = 'block';
         b.onclick = () => { 
-            isZooming = false; document.getElementById('planet-info-panel').style.display = 'none'; 
+            playClickSound(); isZooming = false; document.getElementById('planet-info-panel').style.display = 'none'; 
             document.getElementById('planet-name-display').textContent = "PILIH PLANET"; 
-            sunMesh.visible = true; orbitLines.forEach(l => l.visible = true); planets.forEach(p => p.mesh.visible = true);
+            if(sunMesh) sunMesh.visible = true; orbitLines.forEach(l => l.visible = true); planets.forEach(p => p.mesh.visible = true);
         };
     }
 }
@@ -178,10 +250,9 @@ function verifyAnswer(idx, btn, correct) {
     const allButtons = document.querySelectorAll('.option-btn');
     allButtons.forEach(b => b.style.pointerEvents = 'none');
     if (idx === correct) {
-        score += 10; btn.style.background = "linear-gradient(180deg, #00ff88 0%, #009955 100%)";
+        playCorrectSound(); score += 10; btn.style.background = "linear-gradient(180deg, #00ff88 0%, #009955 100%)";
         selectedPlanet.answered = true; planetsAnsweredInWave++;
-        const totalInWave = Math.min(2 + sectorIndex, 8);
-        if (planetsAnsweredInWave === totalInWave) {
+        if (planetsAnsweredInWave === Math.min(2 + sectorIndex, 8)) {
             sectorIndex++;
             setTimeout(() => {
                 isZooming = false; document.getElementById('question-panel').style.display = 'none';
@@ -191,10 +262,11 @@ function verifyAnswer(idx, btn, correct) {
             return;
         }
     } else {
-        lives--; shakeIntensity = 7.5; btn.classList.add('shake-anim');
+        lives--; shakeIntensity = 10.0; btn.classList.add('shake-anim');
         btn.style.background = "linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%)";
         document.getElementById('lives-counter').textContent = `x${lives}`;
-        if (lives <= 0) { setTimeout(() => customSwal('GAGAL', 'Energi habis!', 'error').then(() => location.reload()), 1000); return; }
+        if (lives <= 0) { triggerPixelGameOver(); return; }
+        else { playWrongSound(); }
     }
     document.getElementById('score').textContent = score;
     setTimeout(() => { isZooming = false; document.getElementById('question-panel').style.display = 'none'; document.getElementById('planet-name-display').textContent = "PILIH PLANET"; }, 1200);
@@ -202,10 +274,7 @@ function verifyAnswer(idx, btn, correct) {
 
 function setupOrbitToggle() {
     const btn = document.getElementById('orbit-toggle-btn');
-    btn.onclick = () => {
-        isOrbiting = !isOrbiting; btn.textContent = isOrbiting ? "ORBIT: JALAN" : "ORBIT: BERHENTI";
-        btn.style.background = isOrbiting ? "linear-gradient(180deg, #00ff88 0%, #009955 100%)" : "linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%)";
-    };
+    if(btn) btn.onclick = () => { playClickSound(); isOrbiting = !isOrbiting; btn.textContent = isOrbiting ? "ORBIT: JALAN" : "ORBIT: BERHENTI"; btn.style.background = isOrbiting ? "linear-gradient(180deg, #00ff88 0%, #009955 100%)" : "linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%)"; };
 }
 
 function createStars() { const geo = new THREE.BufferGeometry(); const pos = []; for(let i=0; i<4000; i++) pos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 1.5}))); }
